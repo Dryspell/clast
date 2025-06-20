@@ -1,26 +1,60 @@
 # Welcome to Our Documentation
 
-This is a sample documentation page that demonstrates MDX capabilities with admonitions.
+This is a sample documentation page that demonstrates our enhanced MDX capabilities with admonitions.
 
-::: tip
-This is a tip! Use this for helpful suggestions and best practices.
+:::note[Important Note]
+This is a note with a custom title! You can use **bold**, _italic_, and `inline code` in both the title and content.
+
+- Lists work too
+- With full Markdown support
 :::
 
-::: warning
-This is a warning! Use this to highlight potential issues or things to be careful about.
+:::tip[Pro Tip!]
+Here's a helpful tip with a custom title. You can even include code blocks:
+
+```typescript
+function hello() {
+  console.log('Hello, world!');
+}
+```
 :::
 
-::: danger
-This is a danger alert! Use this for critical issues or breaking changes.
+:::info
+This is a regular info box without a title. It's great for general information.
+
+> You can use blockquotes and other Markdown features inside admonitions!
 :::
 
-::: info
-This is an info box! Use this for general information and context.
+:::warning[Careful!]
+This is a warning with a title. Pay attention to:
+1. Important points
+2. Critical details
+3. Key considerations
 :::
 
-::: note
-This is a note! Use this for additional details or side information.
+:::danger[Critical Error]
+This is a danger alert with a title! Use this for:
+
+- Breaking changes
+- Security issues
+- Critical warnings
 :::
+
+## Nested Admonitions
+
+You can even nest admonitions:
+
+::::info[Parent Info]
+This is a parent admonition.
+
+:::tip[Child Tip]
+This is a child tip inside the parent info box.
+
+Some more content here.
+:::
+
+More parent content.
+::::
 
 ## Regular MDX Features
 
@@ -39,10 +73,6 @@ function hello() {
 ```
 
 > Blockquotes are also supported!
-
-## Using Components
-
-MDX allows you to use React components directly in your markdown:
 
 <div className="bg-blue-100 p-4 rounded-lg">
   This is a custom React component inside MDX!

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { MDXContentProvider } from '@/components/mdx-provider'
+import { MDXClientWrapper } from '@/components/mdx-client-wrapper'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -23,7 +23,7 @@ export default function RootLayout({
       <body className={`${inter.className} min-h-screen bg-background text-foreground antialiased`}>
         <div className="relative flex min-h-screen flex-col">
           <div className="flex-1">
-            <MDXContentProvider>{children}</MDXContentProvider>
+            <MDXClientWrapper>{children}</MDXClientWrapper>
           </div>
         </div>
       </body>

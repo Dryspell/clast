@@ -1,22 +1,11 @@
-import { Node, Edge } from 'reactflow';
-import { FlowNodeData, FlowEdgeData } from '@/lib/ast/flow-converter';
+import { Node, Edge } from '@xyflow/react';
+import { NodeData } from './node-editor';
 
-export type FlowNode = Node<FlowNodeData>;
-export type FlowEdge = Edge<FlowEdgeData>;
-
-export interface NodeData {
-  id: string;
-  type: string;
-  position: { x: number; y: number };
-  data: FlowNodeData;
-}
-
-export interface EdgeData {
-  id: string;
-  source: string;
-  target: string;
-  data?: FlowEdgeData;
-}
+export type FlowNode = Node<NodeData>;
+export type FlowEdge = Edge<{
+  label?: string;
+  type?: string;
+}>;
 
 export interface FlowState {
   nodes: FlowNode[];

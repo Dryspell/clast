@@ -39,7 +39,7 @@ const components = {
   }
 }
 
-export function MDXContentProvider({ children }: { children: ReactNode }) {
+export function MDXClientWrapper({ children }: { children: ReactNode }) {
   return (
     <MDXProvider components={components}>
       <div className="prose prose-lg max-w-none dark:prose-invert">

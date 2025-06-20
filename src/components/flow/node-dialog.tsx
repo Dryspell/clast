@@ -6,13 +6,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { NodeEditor } from './node-editor';
-import { FlowNode, NodeFormData } from './types';
+import { Node } from '@xyflow/react';
+import { VariableNodeData } from './nodes/VariableNode';
+import { FunctionNodeData, InterfaceNodeData, ApiNodeData } from './node-editor';
+
+type NodeData = VariableNodeData | FunctionNodeData | InterfaceNodeData | ApiNodeData;
 
 interface NodeDialogProps {
-  node: FlowNode | null;
+  node: Node<NodeData> | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpdate: (data: NodeFormData) => void;
+  onUpdate: (node: Node<NodeData>) => void;
 }
 
 export function NodeDialog({ node, open, onOpenChange, onUpdate }: NodeDialogProps) {
@@ -20,23 +24,23 @@ export function NodeDialog({ node, open, onOpenChange, onUpdate }: NodeDialogPro
 
   const title = (() => {
     switch (node.type) {
-      case 'functiondeclaration':
+      case 'function':
         return 'Edit Function';
-      case 'variabledeclaration':
+      case 'variable':
         return 'Edit Variable';
-      case 'interfacedeclaration':
+      case 'interface':
         return 'Edit Interface';
-      case 'classdeclaration':
-        return 'Edit Class';
+      case 'api':
+        return 'Edit API';
       default:
         return 'Edit Node';
     }
   })();
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
+    <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
+      <DialogContent className="max-w-[350px] p-4 cursor-move" draggable>
+        <DialogHeader className="px-2">
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <NodeEditor
