@@ -1,0 +1,195 @@
+---
+description: 
+globs: *.tsx
+alwaysApply: false
+---
+# 🤖 CLAST AI Development Context
+
+This document provides essential context for AI assistants working with the CLAST (Code-Less API Sync Tool) codebase. It serves as a comprehensive guide to help maintain consistency and follow project patterns.
+
+## 🎯 Project Overview
+
+CLAST is a visual flow-based code generation tool that:
+
+- Enables non-technical users to create API integration flows
+- Transforms visual diagrams into TypeScript code
+- Provides real-time collaboration features
+- Offers immediate code preview and validation
+
+## 🏗️ Architecture Principles
+
+1. **Server-First Approach**
+   - Leverage React Server Components for data-heavy operations
+   - Keep client bundles lean by moving logic to the server
+   - Use streaming and suspense for progressive loading
+   - Follow Next.js 15 server-client component patterns
+
+2. **File Conventions**
+   - Implement Next.js 15 special files:
+     - `loading.tsx` for loading states
+     - `error.tsx` for error boundaries
+     - `layout.tsx` for shared layouts
+     - `page.tsx` for route components
+   - Use route groups (folders in parentheses) for organization
+   - Keep parallel routes in mind for complex layouts
+
+3. **Component Architecture**
+   - Clearly mark Client Components with 'use client' directive
+   - Keep components atomic and focused
+   - Follow ShadcN component patterns and styling
+   - Maintain clear separation between stateful and presentational components
+
+## 🔧 Core Functionalities
+
+1. **Flow Editor (React Flow)**
+   - Custom node types for different API operations
+   - Edge validation for connection rules
+   - Drag and drop interface
+   - Real-time collaboration features
+
+2. **Code Generation**
+   - TypeScript AST manipulation for code creation
+   - Template management for different operation types
+   - Type safety enforcement
+   - Code validation and error checking
+
+3. **Monaco Editor Integration**
+   - Real-time code preview
+   - Syntax highlighting
+   - Error detection
+   - TypeScript intelligence
+
+4. **Real-time Features**
+   - ConvexDB integration for live updates
+   - Presence awareness
+   - Conflict resolution
+   - Real-time validation
+
+## 📚 Key Dependencies
+
+1. **Frontend Core**
+
+   ```typescript
+   // Next.js 15 with App Router
+   import { useRouter } from 'next/navigation'
+   
+   // React Flow
+   import ReactFlow from '@xyflow/react'
+   
+   // Monaco Editor
+   import Editor from '@monaco-editor/react'
+   
+   // ShadcN Components
+   import * as React from 'react'
+   import { Button } from '@/components/ui/button'
+   ```
+
+2. **State Management**
+
+   ```typescript
+   // ConvexDB
+   import { useQuery, useMutation } from 'convex/react'
+   
+   // React Server Components
+   import { headers } from 'next/headers'
+   ```
+
+## 🎨 Styling Patterns
+
+1. **Tailwind Conventions**
+   - Use ShadcN class patterns
+   - Maintain consistent spacing scale
+   - Follow color token system
+   - Use CSS variables for theming
+
+2. **Component Styling**
+
+   ```typescript
+   // Example component with proper styling
+   export function FlowNode({ children }: { children: React.ReactNode }) {
+     return (
+       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+         {children}
+       </div>
+     )
+   }
+   ```
+
+## 🔄 State Management Guidelines
+
+1. **Server State**
+   - Use React Server Components for initial data
+   - Implement streaming patterns for large datasets
+   - Handle loading and error states systematically
+
+2. **Client State**
+   - Minimize client-side state
+   - Use ConvexDB for real-time updates
+   - Implement optimistic updates where appropriate
+
+3. **Flow State**
+   - Manage diagram state with React Flow
+   - Sync flow changes to ConvexDB
+   - Handle concurrent edits gracefully
+
+## 💻 Code Generation Patterns
+
+1. **AST Manipulation**
+
+   ```typescript
+   // Example AST transformation
+   import * as ts from 'typescript'
+   
+   function generateApiFunction(flowNode: FlowNode): ts.FunctionDeclaration {
+     // Transform flow node to TypeScript AST
+   }
+   ```
+
+2. **Template Management**
+   - Maintain reusable code templates
+   - Support different API patterns
+   - Ensure type safety in generated code
+
+## 🚨 Error Handling
+
+1. **Client-Side Errors**
+   - Implement error boundaries
+   - Show user-friendly error messages
+   - Log errors appropriately
+
+2. **Server-Side Errors**
+   - Use Next.js error handling patterns
+   - Implement proper status codes
+   - Maintain error logging
+
+## 📝 Documentation Guidelines
+
+1. **Code Comments**
+   - Document complex logic
+   - Explain business rules
+   - Note any technical debt
+
+2. **Type Definitions**
+   - Maintain comprehensive types
+   - Document complex types
+   - Use proper JSDoc when needed
+
+## 🔒 Security Considerations
+
+1. **Authentication**
+   - Implement proper auth checks
+   - Protect sensitive routes
+   - Handle token management
+
+2. **Data Safety**
+   - Validate user inputs
+   - Sanitize generated code
+   - Protect sensitive data
+
+Remember to always consider:
+
+- Performance implications
+- Accessibility requirements
+- Mobile responsiveness
+- Cross-browser compatibility
+

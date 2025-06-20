@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CLAST - Code-Less API Sync Tool
 
-## Getting Started
+CLAST is a modern web application that enables non-technical users to create and manage data synchronization flows between different third-party APIs through an intuitive visual interface. Built with Next.js 15 and leveraging the power of React Server Components, CLAST transforms visual flow diagrams into executable TypeScript code.
 
-First, run the development server:
+## 🌟 Key Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Visual Flow Editor**: Built with React Flow for intuitive drag-and-drop flow creation
+- **Code Generation**: Automatic TypeScript code generation from flow diagrams
+- **Live Code Preview**: Monaco Editor integration for real-time code inspection
+- **Modern UI**: Beautiful and accessible interface using ShadcN components
+- **Real-time Collaboration**: Powered by ConvexDB for live updates
+- **Type-Safe**: Full TypeScript support throughout the application
+
+## 🏗️ Technical Architecture
+
+### Frontend Stack
+- **Framework**: Next.js 15 with App Router
+- **UI Components**: ShadcN (Radix UI + Tailwind CSS)
+- **Flow Editor**: React Flow (@xyflow/react)
+- **Code Editor**: Monaco Editor (@monaco-editor/react)
+- **State Management**: React Server Components + ConvexDB
+- **Styling**: Tailwind CSS
+
+### Backend Stack
+- **Database**: ConvexDB (Real-time Database)
+- **API Layer**: Next.js API Routes + React Server Components
+- **Code Generation**: TypeScript AST manipulation
+
+## 📁 Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── (auth)/            # Authentication routes
+│   ├── (dashboard)/       # Dashboard routes
+│   ├── api/               # API routes
+│   ├── error.tsx          # Error boundary
+│   ├── layout.tsx         # Root layout
+│   ├── loading.tsx        # Loading state
+│   └── page.tsx           # Home page
+├── components/            # React components
+│   ├── flow/             # Flow editor components
+│   ├── monaco/           # Code editor components
+│   └── ui/               # ShadcN components
+├── lib/                   # Utility functions
+│   ├── ast/              # TypeScript AST utilities
+│   ├── convex/           # ConvexDB configuration
+│   └── utils/            # Helper functions
+└── types/                # TypeScript type definitions
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Getting Started
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/clast.git
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. Install dependencies:
+   ```bash
+   pnpm install
+   ```
 
-## Learn More
+3. Set up environment variables:
+   ```bash
+   cp .env.example .env.local
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+4. Start the development server:
+   ```bash
+   pnpm dev
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+5. Open [http://localhost:3000](http://localhost:3000) to view the application
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📖 Documentation
 
-## Deploy on Vercel
+- [AI Development Context](.github/AI_CONTEXT.md) - Comprehensive guide for AI assistants working with this codebase
+- [Contributing Guidelines](.github/CONTRIBUTING.md) - How to contribute to the project
+- [Security](.github/SECURITY.md) - Security policies and procedures
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📄 License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our [contributing guidelines](.github/CONTRIBUTING.md) before submitting pull requests.

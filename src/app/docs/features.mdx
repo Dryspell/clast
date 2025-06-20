@@ -1,0 +1,71 @@
+# Advanced MDX Features
+
+# Table of Contents
+
+## Math Support
+
+You can write inline math like this: $E = mc^2$ or block math:
+
+$$
+\frac{d}{dx}e^x = e^x
+$$
+
+## Code Blocks with Titles
+
+```js:calculator.js
+function add(a, b) {
+  return a + b;
+}
+
+function multiply(a, b) {
+  return a * b;
+}
+```
+
+```python:main.py
+def greet(name):
+    print(f"Hello, {name}!")
+```
+
+## Automatic Link Headings
+
+This section (and all other headings) will automatically get an ID and a link icon that appears on hover. Try clicking the # that appears!
+
+## GitHub Flavored Markdown
+
+The remarkGfm plugin gives us nice GitHub-style markdown features:
+
+### Tables
+
+| Feature | Supported |
+|---------|-----------|
+| Tables | ✅ |
+| Strikethrough | ✅ |
+| URL autolinking | ✅ |
+
+### Task Lists
+
+- [x] Write documentation
+- [ ] Add more features
+- [ ] Deploy to production
+
+### Footnotes
+
+Here's a sentence with a footnote[^1].
+
+[^1]: This is the footnote content!
+
+## Admonitions
+
+And of course, we still have our admonitions:
+
+::: tip
+Math and code blocks work inside admonitions too!
+```js:example.js
+console.log('Hello from inside a tip!');
+```
+:::
+
+::: warning
+Remember that $E = mc^2$ is a very important equation!
+::: 
