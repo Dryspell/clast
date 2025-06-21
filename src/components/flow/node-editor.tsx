@@ -11,7 +11,7 @@ import { VariableNodeData } from './nodes/VariableNode'
 export interface FunctionNodeData {
   name: string
   returnType?: string
-  parameters?: string
+  parameters?: string | string[]
   async?: boolean
   text: string
   type: 'function'

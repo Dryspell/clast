@@ -1,7 +1,7 @@
 'use client'
 
 import React, { memo } from 'react'
-import { Handle, Position, NodeProps } from 'reactflow'
+import { Handle, Position, NodeProps } from '@xyflow/react'
 import { Button } from '../../ui/button'
 import { Globe, Code, PlayCircle } from 'lucide-react'
 
@@ -20,7 +20,9 @@ const methodColors = {
   DELETE: 'text-red-500 bg-red-500/10',
 } as const
 
-const ApiNode = memo(({ data, isConnectable }: NodeProps<ApiNodeData>) => {
+const ApiNode = memo(({ data, isConnectable }: NodeProps<any>) => {
+  const typedData = data as ApiNodeData;
+
   return (
     <div className="min-w-[250px] rounded-lg border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
       <Handle
@@ -35,18 +37,18 @@ const ApiNode = memo(({ data, isConnectable }: NodeProps<ApiNodeData>) => {
             <Globe className="h-4 w-4 text-slate-500" />
           </div>
           <div className="flex items-center gap-2">
-            <span className={`rounded px-2 py-0.5 text-xs font-medium ${methodColors[data.method]}`}>
-              {data.method}
+            <span className={`rounded px-2 py-0.5 text-xs font-medium ${methodColors[typedData.method]}`}>
+              {typedData.method}
             </span>
-            <span className="text-sm font-medium">{data.label}</span>
+            <span className="text-sm font-medium">{typedData.label}</span>
           </div>
         </div>
         <div className="rounded-md bg-muted/30 p-2">
-          <div className="font-mono text-xs text-muted-foreground">{data.endpoint}</div>
-          {data.headers && Object.keys(data.headers).length > 0 && (
+          <div className="font-mono text-xs text-muted-foreground">{typedData.endpoint}</div>
+          {typedData.headers && Object.keys(typedData.headers).length > 0 && (
             <div className="mt-2 space-y-1">
               <div className="text-xs text-muted-foreground">Headers:</div>
-              {Object.entries(data.headers).map(([key, value], index) => (
+              {Object.entries(typedData.headers).map(([key, value], index) => (
                 <div key={index} className="text-xs">
                   <span className="font-mono text-muted-foreground">{key}: </span>
                   <span className="font-mono">{value}</span>

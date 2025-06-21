@@ -1,19 +1,19 @@
 'use client'
 
 import React, { useCallback, useRef, useState } from 'react'
-import ReactFlow, {
+import {
+  ReactFlow,
   Background,
   Controls,
   MiniMap,
-  Node,
-  Edge,
+  Node as RFNode,
+  Edge as RFEdge,
   Connection,
   useNodesState,
   useEdgesState,
   addEdge,
-  Panel,
-} from 'reactflow'
-import 'reactflow/dist/style.css'
+} from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
 import { Button } from '../ui/button'
 import { generateId } from '@/lib/utils'
 import { FunctionNode } from './nodes/FunctionNode'
@@ -46,14 +46,14 @@ export interface FlowEditorProps {
 }
 
 export function FlowEditor({ onSave, initialCode = '' }: FlowEditorProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState([])
-  const [edges, setEdges, onEdgesChange] = useEdgesState([])
+  const [nodes, setNodes, onNodesChange] = useNodesState<any>([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState<any>([])
   const [code, setCode] = useState(initialCode)
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
-  const prevNodesRef = useRef<Node[]>([])
+  const prevNodesRef = useRef<RFNode<any>[]>([])
 
   // Function to check if node data (not position) has changed
-  const hasNodeDataChanged = useCallback((oldNodes: Node[], newNodes: Node[]) => {
+  const hasNodeDataChanged = useCallback((oldNodes: RFNode<any>[], newNodes: RFNode<any>[]) => {
     if (oldNodes.length !== newNodes.length) return true;
     
     return newNodes.some((newNode, i) => {
@@ -91,13 +91,13 @@ export function FlowEditor({ onSave, initialCode = '' }: FlowEditorProps) {
   }, [initialCode])
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds: Edge[]) => addEdge(params, eds)),
+    (params: Connection) => setEdges((eds: RFEdge<any>[]) => addEdge(params, eds)),
     [setEdges]
   )
 
   const createNode = useCallback(
     (type: string, position: { x: number; y: number }) => {
-      const newNode: Node = {
+      const newNode: RFNode<any> = {
         id: generateId(),
         type,
         position,
@@ -108,7 +108,7 @@ export function FlowEditor({ onSave, initialCode = '' }: FlowEditorProps) {
         },
       }
 
-      setNodes((nds: Node[]) => nds.concat(newNode))
+      setNodes((nds: RFNode<any>[]) => nds.concat(newNode))
     },
     [setNodes]
   )
@@ -150,7 +150,7 @@ export function FlowEditor({ onSave, initialCode = '' }: FlowEditorProps) {
               onNodesChange={handleNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
-              nodeTypes={nodeTypes}
+              nodeTypes={nodeTypes as any}
               fitView
             >
               <Controls />

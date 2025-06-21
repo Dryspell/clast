@@ -2,26 +2,47 @@
 
 ## Current Focus: AST Visualization and Editing
 
-### High Priority
-- [ ] Create AST parser service
-  - [ ] Parse TypeScript code into AST
-  - [ ] Convert AST to flow nodes
-  - [ ] Handle imports and exports
-  - [ ] Support basic type annotations
-- [ ] Implement AST node types
-  - [ ] Function declarations
-  - [ ] Variable declarations
-  - [ ] Interface/Type declarations
-  - [ ] Class declarations
-- [ ] Add code preview panel
-  - [ ] Real-time code generation from nodes
-  - [ ] Syntax highlighting
-  - [ ] Error highlighting
-- [ ] Implement node editing
-  - [ ] Edit node properties
-  - [ ] Add/remove parameters
-  - [ ] Modify type annotations
-  - [ ] Update function bodies
+### 1. Immediate Bug-Fixes
+
+- [x] Break circular import between `FunctionNode` ↔ `node-types`
+  - [x] Remove `node-types` import from `FunctionNode`
+  - [x] Inject local `nodeTypes` object via `useMemo`
+
+### 2. AST Parser & Code-Gen Pipeline
+
+- [ ] Build AST parser service
+  - [ ] Tokenise & parse TypeScript with `@babel/parser`
+  - [ ] Map AST → Flow nodes (`AstNode -> ReactFlow.Node`)
+  - [ ] Handle `import` / `export` statements
+  - [ ] Capture source ranges for later code mapping
+- [ ] Implement generator
+  - [ ] Flow nodes → valid TS code
+  - [ ] Preserve formatting via Prettier
+  - [ ] Regenerate on node changes (debounced)
+
+### 3. Function-Node UX (MVP)
+
+- [ ] Parameter chips
+  - [ ] Inline add / edit / delete
+  - [ ] Drag-to-reorder (`@dnd-kit/sortable`)
+  - [ ] Type badges & colour-coding
+- [ ] Body section
+  - [ ] Toggle between text and Nested-Flow view
+  - [ ] Collapsible preview with syntax highlight
+- [ ] Validation
+  - [ ] Highlight unconnected params
+  - [ ] Show return-type badge; warn if missing
+
+### 4. Nested Flow Enhancements
+
+- [ ] Scope panel drag-to-canvas to auto-create nodes
+- [ ] Detect unreachable nodes & surface warnings
+
+### 5. Editor & Preview
+
+- [ ] Two-way sync Monaco ↔ Flow graph
+- [ ] Real-time type-checking in WebWorker
+- [ ] Error markers map back to offending nodes
 
 ### Future Enhancements
 - [ ] Add more node types

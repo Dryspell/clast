@@ -1,7 +1,7 @@
 'use client'
 
 import React, { memo, useState } from 'react'
-import { Handle, Position, NodeProps, Node } from 'reactflow'
+import { Handle, Position, NodeProps, Node as RFNode } from '@xyflow/react'
 import { Button } from '../../ui/button'
 import { Variable, Code, Eye } from 'lucide-react'
 import { NodeDialog } from '../node-dialog'
@@ -18,14 +18,17 @@ export interface VariableNodeData {
   [key: string]: unknown
 }
 
-interface VariableNodeProps extends NodeProps<VariableNodeData> {
+interface VariableNodeProps extends NodeProps {
+  data: VariableNodeData;
   onNodeUpdate?: (nodeId: string, data: VariableNodeData) => void;
+  xPos?: number;
+  yPos?: number;
 }
 
 const VariableNode = memo(({ data, isConnectable, id, onNodeUpdate, xPos, yPos }: VariableNodeProps) => {
   const [isEditing, setIsEditing] = useState(false)
 
-  const handleUpdate = (updatedNode: Node<NodeData>) => {
+  const handleUpdate = (updatedNode: RFNode<any>) => {
     if (onNodeUpdate && updatedNode.data.type === 'variable') {
       onNodeUpdate(id, updatedNode.data as VariableNodeData)
     }
@@ -95,7 +98,7 @@ const VariableNode = memo(({ data, isConnectable, id, onNodeUpdate, xPos, yPos }
           id, 
           type: 'variable', 
           data: { ...data, type: 'variable' }, 
-          position: { x: xPos, y: yPos }
+          position: { x: xPos ?? 0, y: yPos ?? 0 }
         }}
         open={isEditing}
         onOpenChange={setIsEditing}

@@ -7,7 +7,12 @@ import { FunctionSquare, Code, Eye, ArrowRight, ChevronDown } from 'lucide-react
 import { NodeDialog } from '../node-dialog'
 import { FunctionNodeData } from '../node-editor'
 import { NestedFlow, createNestedFlowData, ScopeItem } from '../NestedFlow'
-import { nodeTypes } from '../node-types' // TODO: Create this file to export node types
+// NOTE: We intentionally avoid importing "../node-types" here to break a circular dependency
+// FunctionNode -> node-types -> FunctionNode. Instead we construct the required nodeTypes
+// object locally for the NestedFlow viewer.
+import { VariableNode } from './VariableNode'
+import { InterfaceNode } from './InterfaceNode'
+import { ApiNode } from './ApiNode'
 
 interface FunctionNodeProps extends NodeProps {
   data: FunctionNodeData;
@@ -34,25 +39,36 @@ const FunctionNode = memo(({ data, isConnectable, id, xPos, yPos }: FunctionNode
   const [isExpanded, setIsExpanded] = React.useState(false)
   const [showNestedFlow, setShowNestedFlow] = React.useState(false)
 
-  // Initialize nested flow data
+  // Helper to normalise parameters into an array of strings
+  const normalisedParameters = React.useMemo<string[]>(() => {
+    if (!data.parameters) return []
+    if (Array.isArray(data.parameters)) return data.parameters
+    if (typeof data.parameters === 'string') {
+      return data.parameters
+        .split(',')
+        .map(p => p.trim())
+        .filter(Boolean)
+    }
+    return []
+  }, [data.parameters])
+
+  // Initialize nested flow data (only once)
   const [nestedFlowData, setNestedFlowData] = React.useState(() => {
     const flowData = createNestedFlowData()
-    
+
     // Add function parameters to scope
-    if (data.parameters) {
-      data.parameters.split(',').forEach(param => {
-        const [name, type] = param.trim().split(':').map(s => s.trim())
-        if (name) {
-          flowData.scope.push({
-            id: `param-${name}`,
-            name,
-            type: 'variable',
-            value: type
-          })
-        }
-      })
-    }
-    
+    normalisedParameters.forEach(param => {
+      const [name, type] = param.split(':').map(s => s.trim())
+      if (name) {
+        flowData.scope.push({
+          id: `param-${name}`,
+          name,
+          type: 'variable',
+          value: type
+        })
+      }
+    })
+
     return flowData
   })
 
@@ -76,6 +92,17 @@ const FunctionNode = memo(({ data, isConnectable, id, xPos, yPos }: FunctionNode
     // TODO: Implement connection in nested flow
     console.log('Connection made:', connection)
   }, [])
+
+  const nodeTypes = React.useMemo(
+		() =>
+			({
+				function: FunctionNode,
+				variable: VariableNode,
+				interface: InterfaceNode,
+				api: ApiNode,
+			} as unknown as NodeTypes),
+		[]
+  );
 
   return (
     <>
@@ -105,8 +132,8 @@ const FunctionNode = memo(({ data, isConnectable, id, xPos, yPos }: FunctionNode
             </Button>
           </div>
           <div className="flex flex-wrap gap-2">
-            {data.parameters ? (
-              data.parameters.split(',').map((param: string, index: number) => (
+            {normalisedParameters.length ? (
+              normalisedParameters.map((param: string, index: number) => (
                 <div key={index} className="relative group">
                   <Handle
                     type="target"
