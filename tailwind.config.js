@@ -2,10 +2,11 @@
 module.exports = {
   darkMode: ['class'],
   content: [
-    './src/pages/**/*.{ts,tsx}',
-    './src/components/**/*.{ts,tsx}',
-    './src/app/**/*.{ts,tsx}',
-    './src/**/*.{ts,tsx}',
+    './src/pages/**/*.{ts,tsx,mdx}',
+    './src/components/**/*.{ts,tsx,mdx}',
+    './src/app/**/*.{ts,tsx,mdx}',
+    './src/**/*.{ts,tsx,mdx}',
+    './mdx-components.tsx',
     './node_modules/@xyflow/react/**/*.{js,jsx,ts,tsx}'
   ],
   theme: {
@@ -18,44 +19,110 @@ module.exports = {
     },
     extend: {
       colors: {
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
+        border: 'rgb(var(--border) / <alpha-value>)',
+        input: 'rgb(var(--input) / <alpha-value>)',
+        ring: 'rgb(var(--ring) / <alpha-value>)',
+        background: 'rgb(var(--background) / <alpha-value>)',
+        foreground: 'rgb(var(--foreground) / <alpha-value>)',
         primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
+          DEFAULT: 'rgb(var(--primary) / <alpha-value>)',
+          foreground: 'rgb(var(--primary-foreground) / <alpha-value>)',
         },
         secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
+          DEFAULT: 'rgb(var(--secondary) / <alpha-value>)',
+          foreground: 'rgb(var(--secondary-foreground) / <alpha-value>)',
         },
         destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
+          DEFAULT: 'rgb(var(--destructive) / <alpha-value>)',
+          foreground: 'rgb(var(--destructive-foreground) / <alpha-value>)',
         },
         muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
+          DEFAULT: 'rgb(var(--muted) / <alpha-value>)',
+          foreground: 'rgb(var(--muted-foreground) / <alpha-value>)',
         },
         accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
+          DEFAULT: 'rgb(var(--accent) / <alpha-value>)',
+          foreground: 'rgb(var(--accent-foreground) / <alpha-value>)',
         },
         popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))',
+          DEFAULT: 'rgb(var(--popover) / <alpha-value>)',
+          foreground: 'rgb(var(--popover-foreground) / <alpha-value>)',
         },
         card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
+          DEFAULT: 'rgb(var(--card) / <alpha-value>)',
+          foreground: 'rgb(var(--card-foreground) / <alpha-value>)',
         },
       },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+      },
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: 'none',
+            color: 'var(--foreground)',
+            a: {
+              color: 'var(--primary)',
+              '&:hover': {
+                color: 'var(--primary-foreground)',
+              },
+            },
+            '[class~="lead"]': {
+              color: 'var(--foreground)',
+            },
+            strong: {
+              color: 'var(--foreground)',
+            },
+            'ol > li::marker': {
+              color: 'var(--foreground)',
+            },
+            'ul > li::marker': {
+              color: 'var(--foreground)',
+            },
+            hr: {
+              borderColor: 'var(--border)',
+            },
+            blockquote: {
+              borderLeftColor: 'var(--border)',
+              color: 'var(--foreground)',
+            },
+            h1: {
+              color: 'var(--foreground)',
+            },
+            h2: {
+              color: 'var(--foreground)',
+            },
+            h3: {
+              color: 'var(--foreground)',
+            },
+            h4: {
+              color: 'var(--foreground)',
+            },
+            'figure figcaption': {
+              color: 'var(--muted-foreground)',
+            },
+            code: {
+              color: 'var(--foreground)',
+              backgroundColor: 'var(--muted)',
+            },
+            'a code': {
+              color: 'var(--primary)',
+            },
+            pre: {
+              color: 'var(--foreground)',
+              backgroundColor: 'var(--muted)',
+            },
+            thead: {
+              color: 'var(--foreground)',
+              borderBottomColor: 'var(--border)',
+            },
+            'tbody tr': {
+              borderBottomColor: 'var(--border)',
+            },
+          },
+        },
       },
       keyframes: {
         'accordion-down': {
@@ -73,5 +140,5 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [require('@tailwindcss/typography')],
 } 

@@ -1,60 +1,65 @@
-import createMDX from '@next/mdx'
-import remarkGfm from 'remark-gfm'
-import rehypeSlug from 'rehype-slug'
-import rehypeAutolinkHeadings from 'rehype-autolink-headings'
-import remarkCodeTitles from 'remark-code-titles'
-import remarkToc from 'remark-toc'
-import remarkDirective from 'remark-directive'
-import { visit } from 'unist-util-visit'
+import createMDX from "@next/mdx";
+import remarkGfm from "remark-gfm";
+import rehypeSlug from "rehype-slug";
+import rehypeAutolinkHeadings from "rehype-autolink-headings";
+import remarkCodeTitles from "remark-code-titles";
+import remarkToc from "remark-toc";
+import remarkDirective from "remark-directive";
+import { visit } from "unist-util-visit";
 
 // Custom plugin to transform directives into admonitions
-const remarkAdmonitions = () => {
-	const ADMONITION_TYPES = ['note', 'tip', 'info', 'warning', 'danger']
-	return (tree) => {
-		visit(tree, 'containerDirective', (node) => {
-			const type = node.name
-			if (!ADMONITION_TYPES.includes(type)) return
+function remarkAdmonitions() {
+	const ADMONITION_TYPES = ["note", "tip", "info", "warning", "danger"];
 
-			// Get the title from the directive label if present
-			const title = node.attributes?.label || undefined
+	function transformer(tree, file) {
+		if (!tree || typeof tree !== "object") {
+			console.log("Invalid tree received:", tree);
+			return tree;
+		}
+
+		visit(tree, "containerDirective", (node) => {
+			if (!node || typeof node !== "object") {
+				console.log("Invalid node:", node);
+				return;
+			}
+
+			const type = node.name;
+			if (!type || !ADMONITION_TYPES.includes(type)) {
+				console.log("Invalid type:", type);
+				return;
+			}
+
+			// Find the title by looking for a paragraph with directiveLabel
+			let title;
+			if (node.children && node.children.length > 0) {
+				const firstChild = node.children[0];
+				if (firstChild.type === "paragraph" && firstChild.data?.directiveLabel) {
+					title = firstChild.children[0].value;
+					// Remove the label paragraph from children
+					node.children = node.children.slice(1);
+				}
+			}
 
 			// Add the appropriate classes
-			node.data = node.data || {}
-			node.data.hName = 'div'
+			node.data = node.data || {};
+			node.data.hName = "div";
 			node.data.hProperties = {
 				className: `contains-directive directive-${type}`,
-				'data-title': title
-			}
-		})
+				"data-title": title || undefined,
+			};
+		});
+
+		return tree;
 	}
+
+	return transformer;
 }
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
 	pageExtensions: ["js", "jsx", "mdx", "ts", "tsx"],
 	experimental: {
-		mdxRs: true,
-	},
-	turbopack: {
-		rules: {
-			// Configure Turbopack for MDX
-			"*.mdx": {
-				loaders: ["@mdx-js/loader"],
-				options: {
-					remarkPlugins: [
-						"remark-gfm",
-						"remark-code-titles",
-						"remark-toc",
-						"remark-directive",
-						remarkAdmonitions
-					],
-					rehypePlugins: [
-						"rehype-slug",
-						"rehype-autolink-headings",
-					],
-				},
-			},
-		},
+		mdxRs: false,
 	},
 };
 
@@ -62,16 +67,16 @@ const withMDX = createMDX({
 	options: {
 		remarkPlugins: [
 			remarkGfm,
+			remarkDirective,
 			remarkCodeTitles,
 			remarkToc,
-			remarkDirective,
-			remarkAdmonitions
+			remarkAdmonitions,
 		],
 		rehypePlugins: [
 			rehypeSlug,
-			rehypeAutolinkHeadings,
+			[rehypeAutolinkHeadings, { behavior: "wrap" }],
 		],
 	},
-})
+});
 
-export default withMDX(nextConfig) 
+export default withMDX(nextConfig);
