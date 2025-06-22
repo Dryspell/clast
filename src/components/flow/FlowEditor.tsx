@@ -291,6 +291,14 @@ export function FlowEditor({ onSave, initialCode = "" }: FlowEditorProps) {
 				defaultData = { operator: "+", type };
 			} else if (type === "literal") {
 				defaultData = { value: "0", literalType: "number", type };
+			} else if (type === "api") {
+				defaultData = {
+					label: "fetchData",
+					method: "GET",
+					endpoint: "https://api.example.com/endpoint",
+					headers: {},
+					type,
+				};
 			} else {
 				defaultData = {
 					name: `New${type.charAt(0).toUpperCase() + type.slice(1)}`,

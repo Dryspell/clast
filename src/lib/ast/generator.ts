@@ -51,6 +51,9 @@ export class CodeGenerator {
         case 'binaryOp':
           this.addBinaryOp(node);
           break;
+        case 'api':
+          this.addApi(node);
+          break;
         default:
           // Unknown – just place a comment so users see an issue instead of silent failure
           this.sourceFile.addStatements(`// Unknown node type: ${node.type}`);
@@ -153,5 +156,57 @@ export class CodeGenerator {
     } else {
       this.sourceFile.addStatements(`// Binary operation '${node.data.operator ?? '?'}' is not yet fully connected`);
     }
+  }
+
+  /**
+   * Add an async fetch wrapper function for API nodes
+   */
+  private addApi(node: AstNode) {
+    // Determine a safe function name based on the label or fallback
+    const rawLabel = (node.data as any).label || (node.data as any).name || `api_${node.id}`;
+    const funcName = rawLabel
+      .trim()
+      .replace(/[^a-zA-Z0-9_]/g, '_') // replace invalid chars
+      .replace(/^([0-9])/, '_$1'); // cannot start with digit
+
+    const endpoint = (node.data as any).endpoint ?? '';
+    const method = (node.data as any).method ?? 'GET';
+    const headers = (node.data as any).headers as Record<string, string> | undefined;
+    const body = (node.data as any).body as string | undefined;
+
+    const optsLines: string[] = [];
+    if (method && method !== 'GET') optsLines.push(`method: '${method}'`);
+    if (headers && Object.keys(headers).length) {
+      optsLines.push(`headers: ${JSON.stringify(headers, null, 2)}`);
+    }
+    if (body && method !== 'GET') {
+      // Try to detect if body seems like JSON string already
+      const maybeJSON = body.trim().startsWith('{') || body.trim().startsWith('[');
+      const bodyValue = maybeJSON ? body : JSON.stringify(body);
+      optsLines.push(`body: ${bodyValue}`);
+    }
+
+    const optsObject = optsLines.length
+      ? `{
+${optsLines.map(l => '  ' + l).join(',\n')}
+}`
+      : '{}';
+
+    const func = this.sourceFile.addFunction({
+      name: funcName,
+      isExported: true,
+      isAsync: true,
+      returnType: 'Promise<any>',
+      parameters: [],
+    });
+
+    // Build the fetch call statements line by line for clarity
+    func.addStatements([
+      `const response = await fetch('${endpoint}', ${optsObject});`,
+      'if (!response.ok) {',
+      '  throw new Error(`Request failed: ${response.status}`);',
+      '}',
+      'return await response.json();',
+    ]);
   }
 } 

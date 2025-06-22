@@ -3,7 +3,7 @@
 import React, { memo, useState } from 'react'
 import { Handle, Position, NodeProps, useReactFlow } from '@xyflow/react'
 import { Button } from '../../ui/button'
-import { Globe, PlayCircle } from 'lucide-react'
+import { Globe, PlayCircle, Loader2 } from 'lucide-react'
 import { Input } from '../../ui/input'
 
 export interface ApiNodeData {
@@ -25,6 +25,9 @@ const ApiNode = memo(({ data, isConnectable, id }: NodeProps<any>) => {
   const typedData = data as ApiNodeData;
 
   const [label, setLabel] = useState(typedData.label)
+  const [isTesting, setIsTesting] = useState(false)
+  const [testResult, setTestResult] = useState<string | null>(null)
+  const [testError, setTestError] = useState<string | null>(null)
   const { setNodes } = useReactFlow()
 
   const updateLabel = React.useCallback((val: string) => {
@@ -77,11 +80,52 @@ const ApiNode = memo(({ data, isConnectable, id }: NodeProps<any>) => {
             </div>
           )}
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="flex items-center gap-1">
-            <PlayCircle className="h-3 w-3" />
+        <div className="flex flex-col gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1"
+            disabled={isTesting}
+            onClick={async () => {
+              if (isTesting) return;
+              setIsTesting(true);
+              setTestResult(null);
+              setTestError(null);
+              try {
+                const res = await fetch(typedData.endpoint, {
+                  method: typedData.method,
+                  headers: typedData.headers,
+                  body: typedData.method !== 'GET' ? typedData.body : undefined,
+                });
+
+                const contentType = res.headers.get('content-type') ?? '';
+                let body: string;
+                if (contentType.includes('application/json')) {
+                  body = JSON.stringify(await res.json(), null, 2);
+                } else {
+                  body = await res.text();
+                }
+
+                setTestResult(`Status: ${res.status} ${res.statusText}\n` + body);
+              } catch (err: any) {
+                setTestError(err?.message ?? 'Unknown error');
+              } finally {
+                setIsTesting(false);
+              }
+            }}
+          >
+            {isTesting ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <PlayCircle className="h-3 w-3" />
+            )}
             Test
           </Button>
+          {(testResult || testError) && (
+            <pre className="max-h-40 overflow-auto rounded-md bg-muted/30 p-2 text-xs font-mono whitespace-pre-wrap">
+              {testError ? `Error: ${testError}` : testResult}
+            </pre>
+          )}
         </div>
       </div>
       <Handle
