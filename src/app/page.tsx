@@ -1,6 +1,14 @@
 'use client'
 
 import { FlowEditor } from '@/components/flow/FlowEditor'
+import {
+  Menubar,
+  MenubarMenu,
+  MenubarTrigger,
+  MenubarContent,
+  MenubarItem,
+  MenubarSeparator,
+} from '@/components/ui/menubar'
 
 const INITIAL_CODE = `interface User {
   id: string;
@@ -28,6 +36,24 @@ export default function Home() {
     <main className="flex h-[100dvh] flex-col">
       <div className="flex h-14 items-center justify-between border-b px-6 shadow-sm">
         <h1 className="text-xl font-bold">CLAST - Code-Less API Sync Tool</h1>
+        <Menubar>
+          <MenubarMenu>
+            <MenubarTrigger>File</MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem>New</MenubarItem>
+              <MenubarItem>Open</MenubarItem>
+              <MenubarSeparator />
+              <MenubarItem onSelect={() => { /* placeholder save */ }}>Save</MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
+          <MenubarMenu>
+            <MenubarTrigger>Edit</MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem>Undo</MenubarItem>
+              <MenubarItem>Redo</MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
+        </Menubar>
       </div>
       <div className="flex-1 overflow-hidden">
         <FlowEditor initialCode={INITIAL_CODE} onSave={handleSave} />
