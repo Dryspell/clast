@@ -7,15 +7,27 @@ import { generateCode } from '@/lib/actions/generate-code'
 
 interface CodePreviewProps {
   nodes: AstNode[]
+  /** Optional initial code to display when no nodes are available */
+  initialCode?: string
   onCodeChange?: (code: string) => void
 }
 
-export function CodePreview({ nodes, onCodeChange }: CodePreviewProps) {
-  const [code, setCode] = useState('')
+export function CodePreview({ nodes, initialCode = '', onCodeChange }: CodePreviewProps) {
+  const [code, setCode] = useState(initialCode)
 
   useEffect(() => {
+    // If there are no nodes yet we fall back to the provided initialCode so
+    // that users immediately see something in the editor. Once nodes are
+    // available we switch to the generated code representation.
     async function updateCode() {
       try {
+        if (nodes.length === 0) {
+          // Only set when current code is still the initial one or empty to
+          // avoid overriding user edits.
+          setCode((prev) => (prev === '' || prev === initialCode ? initialCode : prev))
+          return
+        }
+
         const generatedCode = await generateCode(nodes)
         setCode(generatedCode)
         onCodeChange?.(generatedCode)
@@ -24,7 +36,7 @@ export function CodePreview({ nodes, onCodeChange }: CodePreviewProps) {
       }
     }
     updateCode()
-  }, [nodes, onCodeChange])
+  }, [nodes, initialCode, onCodeChange])
 
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {

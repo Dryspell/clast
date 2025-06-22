@@ -64,13 +64,35 @@
 - [ ] DAG layout on demand for expanded expression graphs
 - [ ] Prototype slice: `BinaryOpNode` + `LiteralNode` round-trip (`a + b` → `return a + b`)
 
+### 8. Real-Time Collaboration & Persistence (ConvexDB)
+
+- [x] Convex schema
+  - [x] `users` table
+  - [x] `flows` table
+  - [x] `flow_nodes` table
+  - [x] `flow_edges` table
+- [x] Anonymous user bootstrap
+  - [x] Generate / persist `anonId` in `localStorage`
+  - [x] `users.ensure` mutation to upsert row
+- [x] Flow CRUD mutations & queries
+  - [x] `flows.create`
+  - [x] `flows.listMine`
+  - [x] `flows.delete` (optional)
+- [x] Node & Edge persistence
+  - [x] `nodes.upsert` / `edges.upsert`
+  - [x] `nodes.remove` / `edges.remove`
+- [x] Wire `FlowEditor` to Convex
+  - [x] Subscribe to `api.nodes.listByFlow`
+  - [x] Call mutations on drag / edit events
+- [x] Generated code snapshots (`flows.codePreview`)
+- [ ] Presence & cursor sharing (stretch)
+
 ### Future Enhancements
 - [ ] Add more node types
   - [ ] Transform nodes
   - [ ] Condition nodes
   - [ ] Loop nodes
 - [ ] Implement node configuration dialogs
-- [ ] Set up real-time collaboration with Convex
 - [ ] Add API testing features
 - [ ] Add authentication
 - [ ] Create proper dashboard layout

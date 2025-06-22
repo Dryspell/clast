@@ -14,8 +14,6 @@ import {
 	addEdge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Button } from "../ui/button";
-import { generateId } from "@/lib/utils";
 import { FunctionNode } from "./nodes/FunctionNode";
 import { VariableNode } from "./nodes/VariableNode";
 import { InterfaceNode } from "./nodes/InterfaceNode";
@@ -41,6 +39,10 @@ import {
 import { BinaryOpNode } from "./nodes/BinaryOpNode";
 import { LiteralNode } from "./nodes/LiteralNode";
 import { LabeledGroupNode } from "./nodes/LabeledGroupNode";
+import { useQuery, useMutation } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
+import { generateId } from "@/lib/utils"
+import { SandboxRunner } from './SandboxRunner'
 
 // Custom node types
 const nodeTypes = {
@@ -54,16 +56,65 @@ const nodeTypes = {
 };
 
 export interface FlowEditorProps {
+	/** Optional Convex flow document ID. When omitted, FlowEditor operates in local-only/demo mode. */
+	flowId?: string;
 	onSave?: (code: string) => void;
 	initialCode?: string;
 }
 
-export function FlowEditor({ onSave, initialCode = "" }: FlowEditorProps) {
+export function FlowEditor({ flowId, onSave, initialCode = "" }: FlowEditorProps) {
 	const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
 	const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
 	const [code, setCode] = useState(initialCode);
 	const reactFlowWrapper = useRef<HTMLDivElement>(null);
 	const prevNodesRef = useRef<RFNode<any>[]>([]);
+
+	/* ------------------------------------------------------------------
+	 * Convex realtime data hooks (skip when flowId undefined)
+	 * ------------------------------------------------------------------ */
+	const dbNodes = useQuery(
+		api.nodes.listByFlow,
+		flowId ? ({ flowId } as any) : "skip"
+	);
+	const dbEdges = useQuery(
+		api.edges.listByFlow,
+		flowId ? ({ flowId } as any) : "skip"
+	);
+
+	const upsertNode = useMutation(api.nodes.upsert);
+	const removeNode = useMutation(api.nodes.remove);
+	const upsertEdge = useMutation(api.edges.upsert);
+	const removeEdge = useMutation(api.edges.remove);
+	const updatePreview = useMutation(api.flows.updatePreview);
+
+	// Keep local React Flow state in sync with backend when queries update
+	React.useEffect(() => {
+		if (dbNodes) {
+			setNodes(
+				dbNodes.map((n: any) => ({
+					id: n._id,
+					type: n.type,
+					position: { x: n.x, y: n.y },
+					data: n.data,
+				}))
+			);
+		}
+	}, [dbNodes, setNodes]);
+
+	React.useEffect(() => {
+		if (dbEdges) {
+			setEdges(
+				dbEdges.map((e: any) => ({
+					id: e._id,
+					source: e.source,
+					sourceHandle: e.sourceHandle ?? undefined,
+					target: e.target,
+					targetHandle: e.targetHandle ?? undefined,
+					data: e.data,
+				}))
+			);
+		}
+	}, [dbEdges, setEdges]);
 
 	// Keep previous nodes reference in sync with latest nodes
 	React.useEffect(() => {
@@ -78,15 +129,47 @@ export function FlowEditor({ onSave, initialCode = "" }: FlowEditorProps) {
 		(changes: any[]) => {
 			onNodesChange(changes);
 
-			// After the state updates, check if we had meaningful changes
+			// Persist to backend only when flowId is available
+			if (flowId) {
+				changes.forEach((chg: any) => {
+					if (chg.type === 'position') {
+						const n = nodes.find((node) => node.id === chg.id);
+						if (n) {
+							upsertNode({
+								id: chg.id,
+								flowId: flowId as any,
+								type: n.type,
+								data: n.data,
+								x: chg.position.x,
+								y: chg.position.y,
+							}).catch(console.error);
+						}
+					}
+
+					if (chg.type === 'remove') {
+						removeNode({ id: chg.id }).catch(console.error);
+					}
+				});
+			}
+
 			setNodes((currentNodes) => {
-				const hadMeaningfulChanges = hasNodeDataChanged();
 				prevNodesRef.current = currentNodes;
 				return currentNodes;
 			});
 		},
-		[onNodesChange]
+		[onNodesChange, nodes, upsertNode, removeNode, flowId]
 	);
+
+	const handleEdgesChange = useCallback((changes: any[]) => {
+		onEdgesChange(changes);
+		if (flowId) {
+			changes.forEach((chg: any) => {
+				if (chg.type === 'remove') {
+					removeEdge({ id: chg.id }).catch(console.error);
+				}
+			});
+		}
+	}, [onEdgesChange, removeEdge, flowId]);
 
 	// Parse initial code into AST nodes
 	React.useEffect(() => {
@@ -270,52 +353,84 @@ export function FlowEditor({ onSave, initialCode = "" }: FlowEditorProps) {
 				prevNodesRef.current = nds;
 				return nds;
 			});
+
+			// Persist new edge to backend only when flowId is defined
+			if (flowId) {
+				upsertEdge({
+					flowId: flowId as any,
+					source: params.source as any,
+					sourceHandle: params.sourceHandle ?? undefined,
+					target: params.target as any,
+					targetHandle: params.targetHandle ?? undefined,
+					data: {},
+				}).catch(console.error);
+			}
 		},
-		[setEdges, setNodes]
+		[setEdges, setNodes, upsertEdge, flowId]
 	);
 
-	const createNode = useCallback(
-		(type: string, position: { x: number; y: number }) => {
-			let defaultData: any = {};
-			if (type === "variable") {
-				defaultData = { name: "newVar", variableType: "number", type };
-			} else if (type === "function") {
-				defaultData = {
-					name: "sum",
-					parameters: ["a: number", "b: number"],
-					returnType: "number",
-					async: false,
+	const createNode = useCallback(async (
+		type: string,
+		position: { x: number; y: number }
+	) => {
+		let defaultData: any = {};
+		if (type === "variable") {
+			defaultData = { name: "newVar", variableType: "number", type };
+		} else if (type === "function") {
+			defaultData = {
+				name: "sum",
+				parameters: ["a: number", "b: number"],
+				returnType: "number",
+				async: false,
+				type,
+			};
+		} else if (type === "binaryOp") {
+			defaultData = { operator: "+", type };
+		} else if (type === "literal") {
+			defaultData = { value: "0", literalType: "number", type };
+		} else if (type === "api") {
+			defaultData = {
+				label: "fetchData",
+				method: "GET",
+				endpoint: "https://api.example.com/endpoint",
+				headers: {},
+				type,
+			};
+		} else {
+			defaultData = {
+				name: `New${type.charAt(0).toUpperCase() + type.slice(1)}`,
+				type,
+			};
+		}
+
+		try {
+			let newId: string;
+
+			if (flowId) {
+				newId = (await upsertNode({
+					flowId: flowId as any,
 					type,
-				};
-			} else if (type === "binaryOp") {
-				defaultData = { operator: "+", type };
-			} else if (type === "literal") {
-				defaultData = { value: "0", literalType: "number", type };
-			} else if (type === "api") {
-				defaultData = {
-					label: "fetchData",
-					method: "GET",
-					endpoint: "https://api.example.com/endpoint",
-					headers: {},
-					type,
-				};
+					data: defaultData,
+					x: position.x,
+					y: position.y,
+				})) as unknown as string;
 			} else {
-				defaultData = {
-					name: `New${type.charAt(0).toUpperCase() + type.slice(1)}`,
-					type,
-				};
+				newId = generateId();
 			}
 
 			const newNode: RFNode<any> = {
-				id: generateId(),
+				id: newId,
 				type,
 				position,
 				data: defaultData,
 			};
 
 			setNodes((nds: RFNode<any>[]) => nds.concat(newNode));
-		},
-		[setNodes]
+		} catch (err) {
+			console.error("Failed to create node", err);
+		}
+	},
+	[setNodes, upsertNode, flowId]
 	);
 
 	const handleContextMenuSelect = useCallback(
@@ -340,8 +455,13 @@ export function FlowEditor({ onSave, initialCode = "" }: FlowEditorProps) {
 			if (onSave) {
 				onSave(newCode);
 			}
+
+			// Persist generated code snapshot when connected to backend
+			if (flowId) {
+				updatePreview({ flowId: flowId as any, code: newCode }).catch(() => {});
+			}
 		},
-		[onSave]
+		[onSave, updatePreview, flowId]
 	);
 
 	return (
@@ -353,7 +473,7 @@ export function FlowEditor({ onSave, initialCode = "" }: FlowEditorProps) {
 							nodes={nodes}
 							edges={edges}
 							onNodesChange={handleNodesChange}
-							onEdgesChange={onEdgesChange}
+							onEdgesChange={handleEdgesChange}
 							onConnect={onConnect}
 							nodeTypes={nodeTypes as any}
 							fitView
@@ -410,10 +530,19 @@ export function FlowEditor({ onSave, initialCode = "" }: FlowEditorProps) {
 					</ContextMenuItem>
 				</ContextMenuContent>
 			</ContextMenu>
-			<CodePreview
-				nodes={nodes as unknown as AstNode[]}
-				onCodeChange={handleCodeChange}
-			/>
+			{/* Right-hand sidebar containing code preview and runtime logs */}
+			<div className="flex h-full w-full flex-col">
+				<div className="flex-1 overflow-hidden">
+					<CodePreview
+						nodes={nodes as unknown as AstNode[]}
+						initialCode={initialCode}
+						onCodeChange={handleCodeChange}
+					/>
+				</div>
+				<div className="h-48 border-t">
+					<SandboxRunner code={code} />
+				</div>
+			</div>
 		</div>
 	);
 }
