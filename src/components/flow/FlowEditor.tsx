@@ -89,31 +89,69 @@ export function FlowEditor({ onSave, initialCode = '' }: FlowEditorProps) {
 
   const onConnect = useCallback(
     (params: Connection) => {
-      // Add the edge visually
+      // 1. Draw the edge on the canvas first
       setEdges((eds: RFEdge<any>[]) => addEdge(params, eds))
 
-      // If connecting Interface -> Variable, update variableType automatically
+      // 2. Update node metadata based on the type of connection that was made
       setNodes((nds: RFNode<any>[]) => {
-        const sourceNode = nds.find(n => n.id === params.source)
-        const targetNode = nds.find(n => n.id === params.target)
+        const sourceNode = nds.find((n) => n.id === params.source)
+        const targetNode = nds.find((n) => n.id === params.target)
 
-        if (sourceNode && targetNode && sourceNode.type === 'interface' && targetNode.type === 'variable') {
-          const updated = nds.map(n =>
+        if (!sourceNode || !targetNode) return nds
+
+        // VARIABLE TYPE CONNECTION
+        // We treat a connection into the "type" handle of a variable node as a
+        // request to set its declared type. Only Interface or Type nodes are
+        // allowed as a source for this connection.
+        if (
+          targetNode.type === 'variable' &&
+          params.targetHandle === 'type' &&
+          (sourceNode.type === 'interface' || sourceNode.type === 'type')
+        ) {
+          const updated = nds.map((n) =>
             n.id === targetNode.id
               ? {
                   ...n,
                   data: {
                     ...n.data,
-                    variableType: sourceNode.data.name,
+                    variableType: (sourceNode.data as any).name,
                   },
                 }
               : n
           )
-          // update prev ref to prevent unnecessary regenerate loops
           prevNodesRef.current = updated
           return updated
         }
-        // still sync ref
+
+        // VARIABLE VALUE CONNECTION
+        // A connection into the "value" handle of a variable node indicates
+        // that the variable's initialiser should be the output of another
+        // variable or a function execution.
+        if (
+          targetNode.type === 'variable' &&
+          params.targetHandle === 'value' &&
+          (sourceNode.type === 'variable' || sourceNode.type === 'function')
+        ) {
+          const sourceName = (sourceNode.data as any)?.name ?? ''
+          const initializer =
+            sourceNode.type === 'function' ? `${sourceName}()` : sourceName
+
+          const updated = nds.map((n) =>
+            n.id === targetNode.id
+              ? {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    initializer,
+                  },
+                }
+              : n
+          )
+          prevNodesRef.current = updated
+          return updated
+        }
+
+        // Default – no metadata change required
         prevNodesRef.current = nds
         return nds
       })

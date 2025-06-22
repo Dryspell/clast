@@ -267,10 +267,12 @@ const FunctionNode = memo(({ data, isConnectable, id, xPos, yPos }: FunctionNode
             )}
             <ArrowRight className="h-4 w-4 text-muted-foreground" />
             <Handle
+              id="output"
               type="source"
               position={Position.Right}
               isConnectable={isConnectable}
-              className="!right-0 !bg-purple-500"
+              className="!right-0 !h-3 !w-3 !rounded-full !bg-purple-500"
+              title="Drag to use this function's return value"
             />
           </div>
         </div>

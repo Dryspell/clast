@@ -32,7 +32,7 @@ const ApiNode = memo(({ data, isConnectable, id }: NodeProps<any>) => {
   }, [id, setNodes])
 
   return (
-    <div className="min-w-[250px] rounded-lg border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
+    <div className="relative min-w-[250px] rounded-lg border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
       <Handle
         type="target"
         position={Position.Top}
@@ -85,10 +85,12 @@ const ApiNode = memo(({ data, isConnectable, id }: NodeProps<any>) => {
         </div>
       </div>
       <Handle
+        id="output"
         type="source"
-        position={Position.Bottom}
+        position={Position.Right}
         isConnectable={isConnectable}
-        className="!bg-muted-foreground"
+        className="!right-0 !h-3 !w-3 !rounded-full !bg-slate-500"
+        title="Drag to use the response of this API"
       />
     </div>
   )
