@@ -61,6 +61,18 @@ const nextConfig = {
 	experimental: {
 		mdxRs: false,
 	},
+	webpack(config) {
+		// Prevent bundling of Node-specific modules required by ts-morph
+		config.resolve = config.resolve || {};
+		config.resolve.fallback = {
+			...(config.resolve.fallback || {}),
+			fs: false,
+			path: false,
+			os: false,
+			crypto: false,
+		};
+		return config;
+	},
 };
 
 const withMDX = createMDX({

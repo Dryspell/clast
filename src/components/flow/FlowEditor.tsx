@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { BinaryOpNode } from "./nodes/BinaryOpNode";
 import { LiteralNode } from "./nodes/LiteralNode";
+import { LabeledGroupNode } from "./nodes/LabeledGroupNode";
 
 // Custom node types
 const nodeTypes = {
@@ -49,6 +50,7 @@ const nodeTypes = {
 	api: ApiNode,
 	binaryOp: BinaryOpNode,
 	literal: LiteralNode,
+	labeledGroup: LabeledGroupNode,
 };
 
 export interface FlowEditorProps {
@@ -201,21 +203,21 @@ export function FlowEditor({ onSave, initialCode = "" }: FlowEditorProps) {
 					return updated;
 				}
 
-				// VARIABLE VALUE CONNECTION
-				// A connection into the "value" handle of a variable node indicates
-				// that the variable's initialiser should be the output of another
-				// variable or a function execution.
+				// BINARY OPERATION OPERAND CONNECTION
+				// When an edge is made into lhs or rhs handle of a binaryOp node, store operand expression
 				if (
-					targetNode.type === "variable" &&
-					params.targetHandle === "value" &&
-					(sourceNode.type === "variable" ||
-						sourceNode.type === "function")
+					targetNode.type === "binaryOp" &&
+					(params.targetHandle === "lhs" || params.targetHandle === "rhs")
 				) {
-					const sourceName = (sourceNode.data as any)?.name ?? "";
-					const initializer =
-						sourceNode.type === "function"
-							? `${sourceName}()`
-							: sourceName;
+					let operandExpr = "";
+					if (sourceNode.type === "variable") {
+						operandExpr = (sourceNode.data as any)?.name ?? "";
+					} else if (sourceNode.type === "literal") {
+						const litData = sourceNode.data as any;
+						operandExpr = litData.literalType === "string" ? `"${litData.value}"` : litData.value;
+					} else if (sourceNode.type === "function") {
+						operandExpr = `${(sourceNode.data as any)?.name ?? ""}()`;
+					}
 
 					const updated = nds.map((n) =>
 						n.id === targetNode.id
@@ -223,7 +225,39 @@ export function FlowEditor({ onSave, initialCode = "" }: FlowEditorProps) {
 									...n,
 									data: {
 										...n.data,
-										initializer,
+										[params.targetHandle === "lhs" ? "lhs" : "rhs"]: operandExpr,
+									},
+							  }
+							: n
+					);
+					prevNodesRef.current = updated;
+					return updated;
+				}
+
+				// VARIABLE VALUE CONNECTION – extend to accept binaryOp as source
+				if (
+					targetNode.type === "variable" &&
+					params.targetHandle === "value" &&
+					(sourceNode.type === "variable" ||
+						sourceNode.type === "function" ||
+						sourceNode.type === "binaryOp")
+				) {
+					let sourceExpr = "";
+					if (sourceNode.type === "function") {
+						sourceExpr = `${(sourceNode.data as any)?.name ?? ""}()`;
+					} else if (sourceNode.type === "binaryOp") {
+						sourceExpr = `bin_${sourceNode.id.replace(/-/g, "_")}`;
+					} else {
+						sourceExpr = (sourceNode.data as any)?.name ?? "";
+					}
+
+					const updated = nds.map((n) =>
+						n.id === targetNode.id
+							? {
+									...n,
+									data: {
+										...n.data,
+										initializer: sourceExpr,
 									},
 							  }
 							: n

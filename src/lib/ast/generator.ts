@@ -1,39 +1,92 @@
 import { AstNode } from './types';
+import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 
 /**
  * Service for generating TypeScript code from AST nodes
  */
 export class CodeGenerator {
+  private project: Project;
+  private sourceFile: SourceFile;
+
+  constructor() {
+    // Create a new in-memory ts-morph project so we never touch Node fs.
+    this.project = new Project({ useInMemoryFileSystem: true });
+    this.sourceFile = this.project.createSourceFile('generated.ts', '', { overwrite: true });
+  }
+
   /**
    * Generate TypeScript code from AST nodes
    */
   generateCode(nodes: AstNode[]): string {
-    return nodes.map(node => this.generateNode(node)).join('\n\n');
-  }
+    // Clear any previous statements
+    this.project.removeSourceFile(this.sourceFile);
+    this.sourceFile = this.project.createSourceFile('generated.ts', '', { overwrite: true });
 
-  private generateNode(node: AstNode): string {
-    switch (node.type) {
-      case 'interface':
-        return this.generateInterface(node);
-      case 'function':
-        return this.generateFunction(node);
-      case 'variable':
-        return this.generateVariable(node);
-      default:
-        return `// Unknown node type: ${node.type}`;
+    // Pre-compute child map
+    const childrenByParent: Record<string, AstNode[]> = {};
+
+    for (const n of nodes) {
+      if (n.parentId) {
+        childrenByParent[n.parentId] = childrenByParent[n.parentId] || [];
+        childrenByParent[n.parentId].push(n);
+      }
     }
+
+    // Add each top-level construct to the source file
+    for (const node of nodes) {
+      if (node.parentId) continue; // Only handle top-level here
+      switch (node.type) {
+        case 'interface':
+          this.addInterface(node);
+          break;
+        case 'function':
+          this.addFunction(node, childrenByParent[node.id] ?? []);
+          break;
+        case 'variable':
+          this.addVariable(node);
+          break;
+        case 'literal':
+          this.addLiteral(node);
+          break;
+        case 'binaryOp':
+          this.addBinaryOp(node);
+          break;
+        default:
+          // Unknown – just place a comment so users see an issue instead of silent failure
+          this.sourceFile.addStatements(`// Unknown node type: ${node.type}`);
+      }
+      // Separate statements with blank line for readability
+      this.sourceFile.addStatements('\n');
+    }
+
+    return this.sourceFile.getFullText();
   }
 
-  private generateInterface(node: AstNode): string {
-    const members = node.data.members?.map(
-      member => `  ${member.name}: ${member.type};`
-    ).join('\n') ?? '';
-
-    return `export interface ${node.data.name} {\n${members}\n}`;
+  private addInterface(node: AstNode) {
+    this.sourceFile.addInterface({
+      name: node.data.name,
+      isExported: true,
+      properties: (node.data.members ?? []).map(m => ({ name: m.name, type: m.type })),
+    });
   }
 
-  private generateFunction(node: AstNode): string {
-    // Normalize parameters (support string or object)
+  private addVariable(node: AstNode) {
+    this.sourceFile.addVariableStatement({
+      declarationKind: VariableDeclarationKind.Const,
+      isExported: true,
+      declarations: [{
+        name: node.data.name,
+        initializer: node.data.initializer ?? 'undefined',
+        type: node.data.variableType,
+      }],
+    });
+  }
+
+  private addFunction(node: AstNode, children: AstNode[]) {
+    const scopedVars = children.filter(c => c.type === 'variable');
+    const binaryOps = children.filter(c => c.type === 'binaryOp');
+
+    // Build parameter structures
     const rawParams = node.data.parameters ?? [];
     const normalizedParams = (rawParams as any[]).map((p) => {
       if (typeof p === 'string') {
@@ -43,25 +96,62 @@ export class CodeGenerator {
       return p;
     });
 
-    const paramsString = normalizedParams
-      .map((p) => `${p.name}${p.type ? `: ${p.type}` : ''}`)
-      .join(', ');
+    // Parameter names for shadowing avoidance
+    const paramNames = new Set(normalizedParams.map(p => p.name));
 
-    // VERY SIMPLE DEMO — if first two params exist, generate return sum
-    let body = '  // TODO: Implement function body';
-    if (normalizedParams.length >= 2) {
-      const a = normalizedParams[0].name;
-      const b = normalizedParams[1].name;
-      body = `  return ${a} + ${b};`;
+    // Create the function declaration
+    const func = this.sourceFile.addFunction({
+      isExported: true,
+      name: node.data.name,
+      parameters: normalizedParams.map(p => ({ name: p.name, type: p.type })),
+      returnType: node.data.returnType ?? undefined,
+      isAsync: node.data.async ?? false,
+    });
+
+    // Add inner variable declarations (no shadows, no duplicates)
+    const seen = new Set<string>();
+    for (const v of scopedVars) {
+      if (paramNames.has(v.data.name) || seen.has(v.data.name)) continue;
+      seen.add(v.data.name);
+      func.addStatements(`const ${v.data.name}${v.data.variableType ? `: ${v.data.variableType}` : ''} = ${v.data.initializer ?? 'undefined'};`);
     }
 
-    return `export function ${node.data.name}(${paramsString}) {\n${body}\n}`;
+    // If there's a binary operation node with both operands defined, use it as return expression
+    const firstBin = binaryOps.find(b => b.data.lhs && b.data.rhs);
+
+    if (firstBin) {
+      func.addStatements(`return ${firstBin.data.lhs} ${firstBin.data.operator ?? '+'} ${firstBin.data.rhs};`);
+    } else if (normalizedParams.length >= 2) {
+      func.addStatements(`return ${normalizedParams[0].name} + ${normalizedParams[1].name};`);
+    } else {
+      func.addStatements('// TODO: Implement function body');
+    }
   }
 
-  private generateVariable(node: AstNode): string {
-    // Support optional type annotation and initializer if provided
-    const typeAnnotation = node.data.variableType ? `: ${node.data.variableType}` : ''
-    const initializer = node.data.initializer ?? 'undefined'
-    return `export const ${node.data.name}${typeAnnotation} = ${initializer};`;
+  private addLiteral(node: AstNode) {
+    let initializer = node.data.value ?? 'undefined';
+    const lt = node.data.literalType ?? 'string';
+    if (lt === 'string') initializer = `"${initializer}"`;
+    else if (lt === 'number' || lt === 'boolean') {
+      // leave as-is, assume value is valid
+    }
+    this.sourceFile.addVariableStatement({
+      declarationKind: VariableDeclarationKind.Const,
+      isExported: true,
+      declarations: [{ name: `lit_${node.id.replace(/-/g,'_')}`, initializer }],
+    });
+  }
+
+  private addBinaryOp(node: AstNode) {
+    if (node.data.lhs && node.data.rhs) {
+      const expr = `${node.data.lhs} ${node.data.operator ?? '+'} ${node.data.rhs}`;
+      this.sourceFile.addVariableStatement({
+        declarationKind: VariableDeclarationKind.Const,
+        isExported: true,
+        declarations: [{ name: `bin_${node.id.replace(/-/g,'_')}`, initializer: expr }],
+      });
+    } else {
+      this.sourceFile.addStatements(`// Binary operation '${node.data.operator ?? '?'}' is not yet fully connected`);
+    }
   }
 } 
