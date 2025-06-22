@@ -7,8 +7,8 @@ import { Input } from "../../ui/input";
 
 export type InterfaceNodeData = {
 	name: string;
-	members: string[];
-	text: string;
+	members: Array<string | { name: string; type?: string }>;
+	text?: string;
 };
 
 const InterfaceNode = memo(({ data, isConnectable, id }: NodeProps<any>) => {
@@ -51,14 +51,17 @@ const InterfaceNode = memo(({ data, isConnectable, id }: NodeProps<any>) => {
 						Members:
 					</div>
 					<div className="space-y-1.5">
-						{typedData.members.map((member, index) => (
-							<div
-								key={index}
-								className="rounded border bg-background px-2 py-1 text-xs font-mono text-muted-foreground shadow-sm"
-							>
-								{member}
-							</div>
-						))}
+						{typedData.members.map((member, index) => {
+							const label = typeof member === 'string' ? member : `${member.name}${member.type ? `: ${member.type}` : ''}`
+							return (
+								<div
+									key={index}
+									className="rounded border bg-background px-2 py-1 text-xs font-mono text-muted-foreground shadow-sm"
+								>
+									{label}
+								</div>
+							)
+						})}
 					</div>
 				</div>
 			</div>

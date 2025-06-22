@@ -28,6 +28,17 @@ CLAST is a modern web application that enables non-technical users to create and
 - **API Layer**: Next.js API Routes + React Server Components
 - **Code Generation**: TypeScript AST manipulation
 
+### Database Schema (ConvexDB)
+
+| Table | Purpose |
+|-------|---------|
+| `users` | Authenticated or anonymous visitor records (`authId` OR `anonId`) |
+| `flows` | Top-level visual flows owned by a user; stores title & `codePreview` snapshot |
+| `flow_nodes` | Individual diagram nodes (`type`, position, `data`) |
+| `flow_edges` | Edges between nodes (`source`, `target`, handles) |
+
+> All tables are reactive—every client subscribed to a query automatically receives live updates.
+
 ## 📁 Project Structure
 
 ```
@@ -65,19 +76,30 @@ src/
    pnpm install
    ```
 
-3. Set up environment variables:
+3. Start a Convex dev deployment (leave this running in a separate terminal):
+
+   ```bash
+   npx convex dev
+   ```
+
+   This command will:
+   • prompt for GitHub login & create a project
+   • write `NEXT_PUBLIC_CONVEX_URL` & `CONVEX_DEPLOYMENT_URL` into `.env.local`
+   • generate a `convex/` folder for your server functions
+
+4. Set up any remaining environment variables:
 
    ```bash
    cp .env.example .env.local
    ```
 
-4. Start the development server:
+5. Start the development server:
 
    ```bash
    pnpm dev
    ```
 
-5. Open [http://localhost:3000](http://localhost:3000) to view the application
+6. Open [http://localhost:3000](http://localhost:3000) to view the application
 
 ## 📖 Documentation
 
@@ -118,3 +140,12 @@ MIT
 ## 🤝 Contributing
 
 Contributions are welcome! Please read our [contributing guidelines](.github/CONTRIBUTING.md) before submitting pull requests.
+
+### Try it out locally
+
+After running both `npx convex dev` and `pnpm dev`, open http://localhost:3000/flows to:
+
+1. Create a new flow with "+" New Flow".
+2. Get redirected to `/flows/<id>` where every node / edge change is saved live to Convex.
+
+Multiple browser tabs (or teammates) will see updates in real-time.

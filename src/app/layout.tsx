@@ -3,6 +3,8 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { MDXClientWrapper } from '@/components/mdx-client-wrapper'
 import { SiteHeader } from '@/components/SiteHeader'
+import { ConvexClientProvider } from '@/app/ConvexClientProvider'
+import { EnsureUser } from '@/app/EnsureUser'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -22,12 +24,15 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark:dark">
       <body className={`${inter.className} min-h-screen bg-background text-foreground antialiased`}>
-        <div className="relative flex min-h-screen flex-col">
-          <SiteHeader />
-          <div className="flex-1">
-            <MDXClientWrapper>{children}</MDXClientWrapper>
+        <ConvexClientProvider>
+          <EnsureUser />
+          <div className="relative flex min-h-screen flex-col">
+            <SiteHeader />
+            <div className="flex-1">
+              <MDXClientWrapper>{children}</MDXClientWrapper>
+            </div>
           </div>
-        </div>
+        </ConvexClientProvider>
       </body>
     </html>
   )

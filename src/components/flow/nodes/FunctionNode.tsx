@@ -54,7 +54,17 @@ interface FunctionNodeData {
 const FunctionNode = memo(({ data, isConnectable, id, xPos, yPos }: FunctionNodeProps) => {
   const { setNodes, setEdges, getNodes, getEdges, fitView } = useReactFlow()
   const [isEditingParams, setIsEditingParams] = useState(false)
-  const [paramsInput, setParamsInput] = useState(Array.isArray(data.parameters) ? data.parameters.join(', ') : (data.parameters as string || ''))
+  const [paramsInput, setParamsInput] = useState(() => {
+    if (!data.parameters) return ''
+    if (Array.isArray(data.parameters)) {
+      if (data.parameters.length && typeof data.parameters[0] === 'object') {
+        return (data.parameters as any[]).map(p => `${p.name}${p.type ? `: ${p.type}` : ''}`).join(', ')
+      }
+      return (data.parameters as string[]).join(', ')
+    }
+    if (typeof data.parameters === 'string') return data.parameters
+    return ''
+  })
 
   const updateNodeData = React.useCallback((partial: Partial<FunctionNodeData>) => {
     setNodes(nodes => nodes.map(n => n.id === id ? { ...n, data: { ...n.data, ...partial } } : n))
@@ -63,13 +73,24 @@ const FunctionNode = memo(({ data, isConnectable, id, xPos, yPos }: FunctionNode
   // Helper to normalise parameters into an array of strings
   const normalisedParameters = React.useMemo<string[]>(() => {
     if (!data.parameters) return []
-    if (Array.isArray(data.parameters)) return data.parameters
+
+    // Array case
+    if (Array.isArray(data.parameters)) {
+      // If objects, convert to "name: type" strings for display
+      if (data.parameters.length && typeof data.parameters[0] === 'object') {
+        return (data.parameters as any[]).map(p => `${p.name}${p.type ? `: ${p.type}` : ''}`)
+      }
+      return (data.parameters as string[])
+    }
+
+    // String case
     if (typeof data.parameters === 'string') {
       return data.parameters
         .split(',')
         .map(p => p.trim())
         .filter(Boolean)
     }
+
     return []
   }, [data.parameters])
 
