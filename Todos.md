@@ -18,12 +18,12 @@
 - [ ] Implement generator
   - [ ] Flow nodes → valid TS code
   - [ ] Preserve formatting via Prettier
-  - [ ] Regenerate on node changes (debounced)
+  - [x] Regenerate on node changes (instant)
 
 ### 3. Function-Node UX (MVP)
 
 - [ ] Parameter chips
-  - [ ] Inline add / edit / delete
+  - [x] Inline add / edit / delete (basic text input implemented; chip UI TBD)
   - [ ] Drag-to-reorder (`@dnd-kit/sortable`)
   - [ ] Type badges & colour-coding
 - [ ] Body section

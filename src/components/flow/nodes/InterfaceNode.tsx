@@ -1,9 +1,9 @@
 "use client";
 
-import React, { memo } from "react";
-import { Handle, Position, NodeProps } from "@xyflow/react";
-import { Button } from "../../ui/button";
-import { Box, Code, Eye } from "lucide-react";
+import React, { memo, useState } from "react";
+import { Handle, Position, NodeProps, useReactFlow } from "@xyflow/react";
+import { Box } from "lucide-react";
+import { Input } from "../../ui/input";
 
 export type InterfaceNodeData = {
 	name: string;
@@ -11,8 +11,15 @@ export type InterfaceNodeData = {
 	text: string;
 };
 
-const InterfaceNode = memo(({ data, isConnectable }: NodeProps<any>) => {
+const InterfaceNode = memo(({ data, isConnectable, id }: NodeProps<any>) => {
 	const typedData = data as InterfaceNodeData;
+
+	const [name, setName] = useState(typedData.name);
+	const { setNodes } = useReactFlow();
+
+	const updateNodeName = React.useCallback((val: string) => {
+		setNodes(nodes => nodes.map(n => n.id === id ? { ...n, data: { ...n.data, name: val } } : n))
+	}, [id, setNodes]);
 
 	return (
 		<div className="min-w-[250px] rounded-lg border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
@@ -27,7 +34,17 @@ const InterfaceNode = memo(({ data, isConnectable }: NodeProps<any>) => {
 					<div className="flex h-6 w-6 items-center justify-center rounded bg-green-500/10">
 						<Box className="h-4 w-4 text-green-500" />
 					</div>
-					<span className="text-sm font-medium">{typedData.name}</span>
+					<Input
+						value={name}
+						onChange={(e) => {
+							const val = e.target.value;
+							setName(val);
+							updateNodeName(val);
+						}}
+						className="h-7 text-xs"
+						placeholder="Interface name"
+						onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+					/>
 				</div>
 				<div className="space-y-2 rounded-md bg-muted/30 p-2">
 					<div className="text-xs text-muted-foreground">
@@ -43,24 +60,6 @@ const InterfaceNode = memo(({ data, isConnectable }: NodeProps<any>) => {
 							</div>
 						))}
 					</div>
-				</div>
-				<div className="flex gap-2">
-					<Button
-						variant="outline"
-						size="sm"
-						className="flex items-center gap-1"
-					>
-						<Code className="h-3 w-3" />
-						Edit
-					</Button>
-					<Button
-						variant="outline"
-						size="sm"
-						className="flex items-center gap-1"
-					>
-						<Eye className="h-3 w-3" />
-						View
-					</Button>
 				</div>
 			</div>
 			<Handle

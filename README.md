@@ -4,9 +4,9 @@ CLAST is a modern web application that enables non-technical users to create and
 
 ## 🌟 Key Features
 
-- **Visual Flow Editor**: Built with React Flow for intuitive drag-and-drop flow creation
-- **Code Generation**: Automatic TypeScript code generation from flow diagrams
-- **Live Code Preview**: Monaco Editor integration for real-time code inspection
+- **Visual Flow Editor**: Built with React Flow for intuitive drag-and-drop flow creation and always-editable inline node controls (no modals required)
+- **Code Generation**: Automatic TypeScript code generation that reflects every keystroke in the diagram
+- **Live Code Preview**: Monaco Editor integration that re-generates instantly whenever a node changes
 - **Modern UI**: Beautiful and accessible interface using ShadcN components
 - **Real-time Collaboration**: Powered by ConvexDB for live updates
 - **Type-Safe**: Full TypeScript support throughout the application

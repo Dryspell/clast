@@ -1,11 +1,10 @@
 'use client'
 
 import React, { memo, useState } from 'react'
-import { Handle, Position, NodeProps, Node as RFNode } from '@xyflow/react'
-import { Button } from '../../ui/button'
-import { Variable, Code, Eye } from 'lucide-react'
-import { NodeDialog } from '../node-dialog'
-import { NodeData } from '../node-editor'
+import { Handle, Position, NodeProps, useReactFlow } from '@xyflow/react'
+import { Variable } from 'lucide-react'
+import { Input } from '../../ui/input'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../ui/select'
 
 export interface VariableNodeData {
   name: string
@@ -25,86 +24,116 @@ interface VariableNodeProps extends NodeProps {
   yPos?: number;
 }
 
-const VariableNode = memo(({ data, isConnectable, id, onNodeUpdate, xPos, yPos }: VariableNodeProps) => {
-  const [isEditing, setIsEditing] = useState(false)
+const VariableNode = memo(({ data, isConnectable, id }: VariableNodeProps) => {
+  // Local form state for inline editing
+  const [name, setName] = useState(data.name)
+  const [variableType, setVariableType] = useState(data.variableType ?? '')
+  const [initializer, setInitializer] = useState(data.initializer ?? '')
 
-  const handleUpdate = (updatedNode: RFNode<any>) => {
-    if (onNodeUpdate && updatedNode.data.type === 'variable') {
-      onNodeUpdate(id, updatedNode.data as VariableNodeData)
-    }
-    setIsEditing(false)
-  }
+  const { setNodes, getNodes } = useReactFlow()
+
+  // Compute available types: primitives + interface/type nodes currently present
+  const primitiveTypes = ['string', 'number', 'boolean', 'any', 'unknown', 'void']
+  const interfaceTypes = getNodes()
+    .filter(n => n.type === 'interface' || n.type === 'type')
+    .map(n => (n.data as any)?.name)
+    .filter(Boolean)
+
+  const availableTypes = Array.from(new Set<string>([...primitiveTypes, ...interfaceTypes]))
+
+  // Helper to push updates to React Flow nodes
+  const updateNodeData = React.useCallback(
+    (partial: Partial<VariableNodeData>) => {
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === id
+            ? {
+                ...n,
+                data: {
+                  ...n.data,
+                  ...partial,
+                },
+              }
+            : n
+        )
+      )
+    },
+    [id, setNodes]
+  )
 
   return (
-    <>
-      <div className="min-w-[250px] rounded-lg border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
-        <Handle
-          type="target"
-          position={Position.Top}
-          isConnectable={isConnectable}
-          className="!bg-muted-foreground"
-        />
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded bg-blue-500/10">
-              <Variable className="h-4 w-4 text-blue-500" />
-            </div>
-            <span className="text-sm font-medium">{data.name}</span>
-          </div>
-          <div className="space-y-2 rounded-md bg-muted/30 p-2">
-            {data.variableType && (
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-muted-foreground">Type: </span>
-                <span className="font-mono rounded bg-muted px-1.5 py-0.5">{data.variableType}</span>
-              </div>
-            )}
-            {data.initializer && (
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-muted-foreground">Value: </span>
-                <span className="font-mono rounded bg-muted px-1.5 py-0.5">{data.initializer}</span>
-              </div>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex items-center gap-1"
-              onClick={() => setIsEditing(true)}
-            >
-              <Code className="h-3 w-3" />
-              Edit
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex items-center gap-1"
-              onClick={() => {/* TODO: Implement view action */}}
-            >
-              <Eye className="h-3 w-3" />
-              View
-            </Button>
-          </div>
-        </div>
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          isConnectable={isConnectable}
-          className="!bg-muted-foreground"
-        />
-      </div>
-      <NodeDialog
-        node={{ 
-          id, 
-          type: 'variable', 
-          data: { ...data, type: 'variable' }, 
-          position: { x: xPos ?? 0, y: yPos ?? 0 }
-        }}
-        open={isEditing}
-        onOpenChange={setIsEditing}
-        onUpdate={handleUpdate}
+    <div className="min-w-[250px] rounded-lg border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
+      <Handle
+        type="target"
+        position={Position.Top}
+        isConnectable={isConnectable}
+        className="!bg-muted-foreground"
       />
-    </>
+      <div className="space-y-3">
+        {/* Header */}
+        <div className="flex items-center gap-2">
+          <div className="flex h-6 w-6 items-center justify-center rounded bg-blue-500/10">
+            <Variable className="h-4 w-4 text-blue-500" />
+          </div>
+          <Input
+            value={name}
+            onChange={(e) => {
+              const val = e.target.value
+              setName(val)
+              updateNodeData({ name: val })
+            }}
+            className="h-7 text-xs"
+            placeholder="Variable name"
+            onKeyDown={(e) => {
+              // prevent newline in input
+              if (e.key === 'Enter') e.preventDefault()
+            }}
+          />
+        </div>
+
+        {/* Details / Form */}
+        <div className="space-y-2">
+          {/* Type Dropdown */}
+          <Select
+            value={variableType || undefined}
+            onValueChange={(val) => {
+              setVariableType(val)
+              updateNodeData({ variableType: val || undefined })
+            }}
+          >
+            <SelectTrigger className="h-7 w-full text-xs">
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableTypes.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            value={initializer}
+            onChange={(e) => {
+              const val = e.target.value
+              setInitializer(val)
+              updateNodeData({ initializer: val || undefined })
+            }}
+            className="h-7 text-xs"
+            placeholder="Initial value"
+            onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault() }}
+          />
+        </div>
+
+        {/* No action buttons needed */}
+      </div>
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        isConnectable={isConnectable}
+        className="!bg-muted-foreground"
+      />
+    </div>
   )
 })
 

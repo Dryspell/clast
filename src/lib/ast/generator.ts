@@ -41,6 +41,9 @@ export class CodeGenerator {
   }
 
   private generateVariable(node: AstNode): string {
-    return `export const ${node.data.name} = undefined; // TODO: Implement variable initialization`;
+    // Support optional type annotation and initializer if provided
+    const typeAnnotation = node.data.variableType ? `: ${node.data.variableType}` : ''
+    const initializer = node.data.initializer ?? 'undefined'
+    return `export const ${node.data.name}${typeAnnotation} = ${initializer};`;
   }
 } 

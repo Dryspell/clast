@@ -1,9 +1,10 @@
 'use client'
 
-import React, { memo } from 'react'
-import { Handle, Position, NodeProps } from '@xyflow/react'
+import React, { memo, useState } from 'react'
+import { Handle, Position, NodeProps, useReactFlow } from '@xyflow/react'
 import { Button } from '../../ui/button'
-import { Globe, Code, PlayCircle } from 'lucide-react'
+import { Globe, PlayCircle } from 'lucide-react'
+import { Input } from '../../ui/input'
 
 export interface ApiNodeData {
   label: string
@@ -20,8 +21,15 @@ const methodColors = {
   DELETE: 'text-red-500 bg-red-500/10',
 } as const
 
-const ApiNode = memo(({ data, isConnectable }: NodeProps<any>) => {
+const ApiNode = memo(({ data, isConnectable, id }: NodeProps<any>) => {
   const typedData = data as ApiNodeData;
+
+  const [label, setLabel] = useState(typedData.label)
+  const { setNodes } = useReactFlow()
+
+  const updateLabel = React.useCallback((val: string) => {
+    setNodes(nodes => nodes.map(n => n.id === id ? { ...n, data: { ...n.data, label: val } } : n))
+  }, [id, setNodes])
 
   return (
     <div className="min-w-[250px] rounded-lg border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
@@ -36,11 +44,23 @@ const ApiNode = memo(({ data, isConnectable }: NodeProps<any>) => {
           <div className="flex h-6 w-6 items-center justify-center rounded bg-slate-500/10">
             <Globe className="h-4 w-4 text-slate-500" />
           </div>
-          <div className="flex items-center gap-2">
+          <div
+            className="flex items-center gap-2"
+          >
             <span className={`rounded px-2 py-0.5 text-xs font-medium ${methodColors[typedData.method]}`}>
               {typedData.method}
             </span>
-            <span className="text-sm font-medium">{typedData.label}</span>
+            <Input
+              value={label}
+              onChange={e => {
+                const val = e.target.value;
+                setLabel(val);
+                updateLabel(val);
+              }}
+              className="h-7 text-xs"
+              placeholder="Request label"
+              onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
+            />
           </div>
         </div>
         <div className="rounded-md bg-muted/30 p-2">
@@ -58,10 +78,6 @@ const ApiNode = memo(({ data, isConnectable }: NodeProps<any>) => {
           )}
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="flex items-center gap-1">
-            <Code className="h-3 w-3" />
-            Edit
-          </Button>
           <Button variant="outline" size="sm" className="flex items-center gap-1">
             <PlayCircle className="h-3 w-3" />
             Test

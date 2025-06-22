@@ -52,16 +52,13 @@ export function FlowEditor({ onSave, initialCode = '' }: FlowEditorProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const prevNodesRef = useRef<RFNode<any>[]>([])
 
-  // Function to check if node data (not position) has changed
-  const hasNodeDataChanged = useCallback((oldNodes: RFNode<any>[], newNodes: RFNode<any>[]) => {
-    if (oldNodes.length !== newNodes.length) return true;
-    
-    return newNodes.some((newNode, i) => {
-      const oldNode = oldNodes[i];
-      // Only compare the data object, not position
-      return JSON.stringify(newNode.data) !== JSON.stringify(oldNode.data);
-    });
-  }, []);
+  // Keep previous nodes reference in sync with latest nodes
+  React.useEffect(() => {
+    prevNodesRef.current = nodes
+  }, [nodes])
+
+  // No longer need custom change detection; CodePreview regenerates on any node change
+  const hasNodeDataChanged = () => true;
 
   // Handle node changes and detect meaningful updates
   const handleNodesChange = useCallback((changes: any[]) => {
@@ -69,11 +66,11 @@ export function FlowEditor({ onSave, initialCode = '' }: FlowEditorProps) {
     
     // After the state updates, check if we had meaningful changes
     setNodes(currentNodes => {
-      const hadMeaningfulChanges = hasNodeDataChanged(prevNodesRef.current, currentNodes);
+      const hadMeaningfulChanges = hasNodeDataChanged();
       prevNodesRef.current = currentNodes;
       return currentNodes;
     });
-  }, [onNodesChange, hasNodeDataChanged]);
+  }, [onNodesChange]);
 
   // Parse initial code into AST nodes
   React.useEffect(() => {
@@ -91,8 +88,37 @@ export function FlowEditor({ onSave, initialCode = '' }: FlowEditorProps) {
   }, [initialCode])
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds: RFEdge<any>[]) => addEdge(params, eds)),
-    [setEdges]
+    (params: Connection) => {
+      // Add the edge visually
+      setEdges((eds: RFEdge<any>[]) => addEdge(params, eds))
+
+      // If connecting Interface -> Variable, update variableType automatically
+      setNodes((nds: RFNode<any>[]) => {
+        const sourceNode = nds.find(n => n.id === params.source)
+        const targetNode = nds.find(n => n.id === params.target)
+
+        if (sourceNode && targetNode && sourceNode.type === 'interface' && targetNode.type === 'variable') {
+          const updated = nds.map(n =>
+            n.id === targetNode.id
+              ? {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    variableType: sourceNode.data.name,
+                  },
+                }
+              : n
+          )
+          // update prev ref to prevent unnecessary regenerate loops
+          prevNodesRef.current = updated
+          return updated
+        }
+        // still sync ref
+        prevNodesRef.current = nds
+        return nds
+      })
+    },
+    [setEdges, setNodes]
   )
 
   const createNode = useCallback(
@@ -194,7 +220,6 @@ export function FlowEditor({ onSave, initialCode = '' }: FlowEditorProps) {
       <CodePreview
         nodes={nodes as unknown as AstNode[]}
         onCodeChange={handleCodeChange}
-        shouldRegenerate={hasNodeDataChanged(prevNodesRef.current, nodes)}
       />
     </div>
   )

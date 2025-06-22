@@ -5,5 +5,8 @@ export interface AstNode {
     name: string
     parameters?: Array<{ name: string; type?: string }>
     members?: Array<{ name: string; type: string }>
+    /** Specific to variable nodes */
+    variableType?: string
+    initializer?: string
   }
 } 

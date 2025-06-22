@@ -8,30 +8,23 @@ import { generateCode } from '@/lib/actions/generate-code'
 interface CodePreviewProps {
   nodes: AstNode[]
   onCodeChange?: (code: string) => void
-  shouldRegenerate: boolean
 }
 
-export function CodePreview({ nodes, onCodeChange, shouldRegenerate }: CodePreviewProps) {
+export function CodePreview({ nodes, onCodeChange }: CodePreviewProps) {
   const [code, setCode] = useState('')
-  const [isGenerating, setIsGenerating] = useState(false)
 
   useEffect(() => {
-    if (!shouldRegenerate) return;
-    
     async function updateCode() {
-      setIsGenerating(true)
       try {
         const generatedCode = await generateCode(nodes)
         setCode(generatedCode)
         onCodeChange?.(generatedCode)
       } catch (error) {
         console.error('Error generating code:', error)
-      } finally {
-        setIsGenerating(false)
       }
     }
     updateCode()
-  }, [nodes, onCodeChange, shouldRegenerate])
+  }, [nodes, onCodeChange])
 
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
