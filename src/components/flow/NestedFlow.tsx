@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   ReactFlow,
+  ReactFlowProvider,
   Node,
   Edge,
   Background,
@@ -63,21 +64,23 @@ export function NestedFlow({
         </div>
       </div>
 
-      {/* Flow Canvas */}
-      <ReactFlow
-        nodes={data.nodes}
-        edges={data.edges}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        fitView
-        className="bg-background"
-      >
-        <Background />
-        <Controls />
-      </ReactFlow>
+      {/* Flow Canvas – isolated provider to avoid clobbering parent flow */}
+      <ReactFlowProvider>
+        <ReactFlow
+          nodes={data.nodes}
+          edges={data.edges}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          fitView
+          className="bg-background"
+        >
+          <Background />
+          <Controls />
+        </ReactFlow>
+      </ReactFlowProvider>
     </div>
   );
 }

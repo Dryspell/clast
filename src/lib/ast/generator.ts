@@ -33,11 +33,29 @@ export class CodeGenerator {
   }
 
   private generateFunction(node: AstNode): string {
-    const params = node.data.parameters?.map(
-      param => `${param.name}${param.type ? `: ${param.type}` : ''}`
-    ).join(', ') ?? '';
+    // Normalize parameters (support string or object)
+    const rawParams = node.data.parameters ?? [];
+    const normalizedParams = (rawParams as any[]).map((p) => {
+      if (typeof p === 'string') {
+        const [name, type] = p.split(':').map((s) => s.trim());
+        return { name, type };
+      }
+      return p;
+    });
 
-    return `export function ${node.data.name}(${params}) {\n  // TODO: Implement function body\n}`;
+    const paramsString = normalizedParams
+      .map((p) => `${p.name}${p.type ? `: ${p.type}` : ''}`)
+      .join(', ');
+
+    // VERY SIMPLE DEMO — if first two params exist, generate return sum
+    let body = '  // TODO: Implement function body';
+    if (normalizedParams.length >= 2) {
+      const a = normalizedParams[0].name;
+      const b = normalizedParams[1].name;
+      body = `  return ${a} + ${b};`;
+    }
+
+    return `export function ${node.data.name}(${paramsString}) {\n${body}\n}`;
   }
 
   private generateVariable(node: AstNode): string {

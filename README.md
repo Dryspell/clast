@@ -14,6 +14,7 @@ CLAST is a modern web application that enables non-technical users to create and
 ## 🏗️ Technical Architecture
 
 ### Frontend Stack
+
 - **Framework**: Next.js 15 with App Router
 - **UI Components**: ShadcN (Radix UI + Tailwind CSS)
 - **Flow Editor**: React Flow (@xyflow/react)
@@ -22,6 +23,7 @@ CLAST is a modern web application that enables non-technical users to create and
 - **Styling**: Tailwind CSS
 
 ### Backend Stack
+
 - **Database**: ConvexDB (Real-time Database)
 - **API Layer**: Next.js API Routes + React Server Components
 - **Code Generation**: TypeScript AST manipulation
@@ -52,21 +54,25 @@ src/
 ## 🚀 Getting Started
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/yourusername/clast.git
    ```
 
 2. Install dependencies:
+
    ```bash
    pnpm install
    ```
 
 3. Set up environment variables:
+
    ```bash
    cp .env.example .env.local
    ```
 
 4. Start the development server:
+
    ```bash
    pnpm dev
    ```
@@ -82,12 +88,14 @@ src/
 ## 🧭 Roadmap & UX Strategy
 
 ### Expression Graph & AST Round-Trip
+
 - **Model**: Parse TypeScript AST into granular Flow nodes only when the user drills into a function or expression.
 - **Node taxonomy**: `CallExpression`, `BinaryOp`, `Literal`, `PropertyAccess`, `Conditional`, etc.
 - **Round-trip guarantee**: Each flow node stores the original `pos`/`end` source positions, so we can always regenerate the exact TypeScript representation.
 - **Layout & performance**: Run a lightweight DAG layout on the *currently expanded* sub-flow and auto-collapse into a compact card when zoomed out or off-screen.
 
 ### Progressive Complexity Patterns
+
 1. **Progressive disclosure** – present high-level composite blocks by default; allow experts to expand into fine-grained nodes with one click.
 2. **Polymorphic "Smart" node** – a single omni-node that infers its exact internal graph from a free-text expression (e.g. `price * qty + tax`).
 3. **Wizards & templates** – guided UI for common patterns (CRUD, pagination loop, retry-with-backoff).
@@ -98,6 +106,7 @@ src/
 8. **Dual-persona defaults** – remember whether the user prefers high-level or detailed view and default future nodes accordingly.
 
 ### Minimum Viable Slice
+
 - Add `BinaryOpNode` and `LiteralNode` components.
 - Extend `createNestedFlowData()` demo to render `a + b` wired into `return`.
 - Verify round-trip by regenerating `return a + b` via the code-gen pipeline.
