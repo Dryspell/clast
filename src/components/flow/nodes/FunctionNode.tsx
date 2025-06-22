@@ -1,7 +1,7 @@
 'use client'
 
 import React, { memo, useState } from 'react'
-import { Handle, Position, NodeProps, ReactFlow, NodeTypes, useReactFlow } from '@xyflow/react'
+import { Handle, Position, NodeProps, ReactFlow, NodeTypes, useReactFlow, Node, applyNodeChanges, applyEdgeChanges, addEdge as rfAddEdge, Connection } from '@xyflow/react'
 import { Button } from '../../ui/button'
 import { FunctionSquare, ArrowRight, ChevronDown, Code } from 'lucide-react'
 import { NestedFlow, createNestedFlowData, ScopeItem } from '../NestedFlow'
@@ -76,6 +76,55 @@ const FunctionNode = memo(({ data, isConnectable, id, xPos, yPos }: FunctionNode
   const [nestedFlowData, setNestedFlowData] = React.useState(() => {
     const flowData = createNestedFlowData()
 
+    // --- Sub-flow group for the function body -----------------------------
+    const bodyGroupId = `group-${id}`
+
+    // Add a "group" node that will act as the parent container for all
+    // statements / expressions that belong to this function body. We use the
+    // built-in `type: 'group'` that React Flow provides for sub-flows. The
+    // `style` prop gives the group a subtle background so it is visually
+    // distinguishable from normal nodes.
+    const bodyGroupNode: Node = {
+      id: bodyGroupId,
+      type: 'group',
+      data: { label: 'Function Body' },
+      position: { x: 50, y: 50 },
+      style: {
+        width: 600,
+        height: 400,
+        backgroundColor: 'rgba(130, 130, 255, 0.06)',
+        border: '1px dashed #9ca3af',
+        borderRadius: 6,
+      },
+    }
+
+    flowData.nodes.push(bodyGroupNode)
+
+    // Add parameter variables as children of the body group so that they are
+    // part of the sub-flow. Each node gets `parentId` to link it to the group
+    // and `extent: 'parent'` so users cannot drag it outside the function
+    // body rectangle.
+    normalisedParameters.forEach((param: string, index: number) => {
+      const [paramName, paramType] = param.split(':').map(s => s.trim())
+      if (!paramName) return
+
+      const paramNode: Node = {
+        id: `param-${id}-${index}`,
+        type: 'variable',
+        parentId: bodyGroupId,
+        extent: 'parent',
+        position: { x: 30, y: 40 + index * 60 },
+        data: {
+          name: paramName,
+          variableType: paramType || undefined,
+          text: '',
+          type: 'variable',
+        },
+      }
+
+      flowData.nodes.push(paramNode)
+    })
+
     // Add function parameters to scope
     normalisedParameters.forEach((param: string) => {
       const [name, type] = param.split(':').map(s => s.trim())
@@ -92,25 +141,59 @@ const FunctionNode = memo(({ data, isConnectable, id, xPos, yPos }: FunctionNode
     return flowData
   })
 
+  // Memoised id for the body group so we can reuse it in callbacks
+  const bodyGroupId = React.useMemo(() => `group-${id}`, [id])
+
   const handleScopeItemClick = React.useCallback((item: ScopeItem) => {
-    // TODO: Implement scope item click handler
-    // This could create a new node in the nested flow representing the scope item
-    console.log('Scope item clicked:', item)
-  }, [])
+    // When a scope item is clicked we materialise it as a node inside the
+    // function body sub-flow. For now we only handle variable & function scope
+    // items – others fall back to a generic variable node.
+
+    const nodeId = `${item.type}-${item.id}-${Date.now()}`
+
+    const nodeType = ['function', 'variable', 'interface', 'api'].includes(item.type)
+      ? (item.type as Node['type'])
+      : 'variable'
+
+    const newNode: Node = {
+      id: nodeId,
+      type: nodeType,
+      parentId: bodyGroupId,
+      extent: 'parent',
+      position: { x: 150, y: 100 },
+      data: {
+        name: item.name,
+        variableType: item.value,
+        type: nodeType,
+        text: '',
+      },
+    }
+
+    setNestedFlowData((prev) => ({
+      ...prev,
+      nodes: [...prev.nodes, newNode],
+    }))
+  }, [bodyGroupId])
 
   const handleNestedNodesChange = React.useCallback((changes: any) => {
-    // TODO: Implement node changes in nested flow
-    console.log('Nodes changed:', changes)
+    setNestedFlowData((prev) => ({
+      ...prev,
+      nodes: applyNodeChanges(changes, prev.nodes),
+    }))
   }, [])
 
   const handleNestedEdgesChange = React.useCallback((changes: any) => {
-    // TODO: Implement edge changes in nested flow
-    console.log('Edges changed:', changes)
+    setNestedFlowData((prev) => ({
+      ...prev,
+      edges: applyEdgeChanges(changes, prev.edges),
+    }))
   }, [])
 
-  const handleNestedConnect = React.useCallback((connection: any) => {
-    // TODO: Implement connection in nested flow
-    console.log('Connection made:', connection)
+  const handleNestedConnect = React.useCallback((connection: Connection | import('@xyflow/react').Edge) => {
+    setNestedFlowData((prev) => ({
+      ...prev,
+      edges: rfAddEdge(connection, prev.edges),
+    }))
   }, [])
 
   const nodeTypes = React.useMemo(

@@ -79,6 +79,29 @@ src/
 - [Contributing Guidelines](.github/CONTRIBUTING.md) - How to contribute to the project
 - [Security](.github/SECURITY.md) - Security policies and procedures
 
+## 🧭 Roadmap & UX Strategy
+
+### Expression Graph & AST Round-Trip
+- **Model**: Parse TypeScript AST into granular Flow nodes only when the user drills into a function or expression.
+- **Node taxonomy**: `CallExpression`, `BinaryOp`, `Literal`, `PropertyAccess`, `Conditional`, etc.
+- **Round-trip guarantee**: Each flow node stores the original `pos`/`end` source positions, so we can always regenerate the exact TypeScript representation.
+- **Layout & performance**: Run a lightweight DAG layout on the *currently expanded* sub-flow and auto-collapse into a compact card when zoomed out or off-screen.
+
+### Progressive Complexity Patterns
+1. **Progressive disclosure** – present high-level composite blocks by default; allow experts to expand into fine-grained nodes with one click.
+2. **Polymorphic "Smart" node** – a single omni-node that infers its exact internal graph from a free-text expression (e.g. `price * qty + tax`).
+3. **Wizards & templates** – guided UI for common patterns (CRUD, pagination loop, retry-with-backoff).
+4. **AI-assisted intent capture** – natural-language prompt ("Generate Shopify order sync that retries 3× on 5xx") produces a pre-wired flow.
+5. **Inline Monaco "islands"** – any node can switch to a mini code editor; the snippet is parsed back into expression nodes behind the scenes.
+6. **Dynamic suggestion bar** – when the user starts a connection, show a filtered palette based on type compatibility.
+7. **Focus & clutter management** – auto-collapse distant sub-flows, hover to preview, breadcrumb path for navigation.
+8. **Dual-persona defaults** – remember whether the user prefers high-level or detailed view and default future nodes accordingly.
+
+### Minimum Viable Slice
+- Add `BinaryOpNode` and `LiteralNode` components.
+- Extend `createNestedFlowData()` demo to render `a + b` wired into `return`.
+- Verify round-trip by regenerating `return a + b` via the code-gen pipeline.
+
 ## 📄 License
 
 MIT

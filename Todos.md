@@ -44,6 +44,26 @@
 - [ ] Real-time type-checking in WebWorker
 - [ ] Error markers map back to offending nodes
 
+### 6. User Experience Strategy
+
+- [ ] Progressive disclosure: composite ↔ expanded node toggle
+- [ ] Polymorphic **SmartNode** that auto-decomposes expressions
+- [ ] Wizards & templates for common integration patterns
+- [ ] AI intent capture input box (natural language → flow graph)
+- [ ] Inline Monaco "island" editor inside any node
+- [ ] Dynamic suggestion bar during edge creation (type-aware)
+- [ ] Focus & clutter management (auto-collapse, breadcrumbs)
+- [ ] Dual persona defaults remembered per user
+
+### 7. Expression Nodes Roadmap
+
+- [ ] Implement core expression nodes (`CallExpression`, `BinaryOp`, `Literal`, `PropertyAccess`, `Conditional`)
+- [ ] Surface inferred type badges using TypeScript checker
+- [ ] Mini-flow overlay inside `FunctionNode` for pure expressions
+- [ ] Store AST `pos`/`end` on every node for round-trip fidelity
+- [ ] DAG layout on demand for expanded expression graphs
+- [ ] Prototype slice: `BinaryOpNode` + `LiteralNode` round-trip (`a + b` → `return a + b`)
+
 ### Future Enhancements
 - [ ] Add more node types
   - [ ] Transform nodes
