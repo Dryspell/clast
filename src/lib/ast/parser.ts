@@ -67,6 +67,38 @@ export class Parser {
         return id
       }
 
+      // Binary expressions (e.g. a + b, x && y)
+      if (ts.isBinaryExpression(expr)) {
+        const id = generateId();
+
+        // Binary operator token text (e.g. '+', '===', '&&')
+        const operator = expr.operatorToken.getText();
+
+        // Left-hand and right-hand side raw expression text
+        const lhsText = expr.left.getText();
+        const rhsText = expr.right.getText();
+
+        const node: AstNode = {
+          id,
+          type: 'binaryOp',
+          parentId,
+          data: {
+            operator,
+            lhs: lhsText,
+            rhs: rhsText,
+            type: 'binaryOp',
+          } as any,
+        };
+
+        pushNode(node);
+
+        // Walk into both sides of the expression to capture nested calls, etc.
+        walkExpr(expr.left, id);
+        walkExpr(expr.right, id);
+
+        return id;
+      }
+
       // For BinaryExpression or others, you might add more cases later
       return undefined
     }

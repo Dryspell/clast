@@ -17,9 +17,9 @@ export function useNodeFactory(flowId: string | undefined, setNodes: (updater: (
           break;
         case "function":
           defaultData = {
-            name: "sum",
-            parameters: ["a: number", "b: number"],
-            returnType: "number",
+            name: "myFunction",
+            parameters: [],
+            returnType: undefined,
             async: false,
             type,
           };

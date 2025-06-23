@@ -71,6 +71,15 @@ const nextConfig = {
 			os: false,
 			crypto: false,
 		};
+
+		// Suppress "Critical dependency: the request of a dependency is an expression"
+		// warnings that arise from ts-morph/TypeScript's dynamic `require()` calls.
+		// These are safe to ignore in a browser-only bundle because our `fs/path/os` stubs
+		// above ensure the modules are never actually executed client-side.
+		// See https://github.com/microsoft/TypeScript/issues/39436 for details.
+		config.module.exprContextCritical = false;
+		config.module.unknownContextCritical = false;
+
 		return config;
 	},
 };

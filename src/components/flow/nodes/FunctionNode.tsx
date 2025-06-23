@@ -148,34 +148,16 @@ const FunctionNode = memo(
 				return;
 			}
 
-			const paramNodes: Node[] = normalisedParameters.map((param, index) => {
-				const [paramName, paramType] = param.split(':').map(s => s.trim());
-				const paramId = generateId();
-				return {
-					id: paramId,
-					type: 'variable',
-					parentId: id,
-					extent: 'parent',
-					position: { x: 30, y: 160 + index * 70 },
-					data: {
-						name: paramName,
-						variableType: paramType || undefined,
-						type: 'variable',
-					},
-				} as Node;
-			});
+			// Currently we don't auto-generate placeholder nodes inside the
+			// function body.  This avoids showing duplicate "parameter"
+			// variables (which are already represented in the header) and
+			// lets users decide what logic to add.
 
-			const nodesToAdd: Node[] = [...paramNodes];
+			// If no child nodes exist yet, there's nothing to add – we simply
+			// return after ensuring the viewport is centred once.
 
-			const edgesToAdd: Edge[] = [];
-
-			// No automatic placeholder body nodes. Users can add their own logic.
-
-			setNodes((ns) => [...ns, ...nodesToAdd]);
-			if (edgesToAdd.length) setEdges((es) => [...es, ...edgesToAdd]);
-
-			// make sure the viewport centers on the new body group for better UX
-			// slight timeout to ensure nodes are rendered before fitting view
+			// make sure the viewport centers on the node itself when first
+			// expanded so the user isn't left staring at empty canvas space.
 			setTimeout(() => {
 				const currentNodes = getNodes().filter(
 					(n) => n.id === id || n.parentId === id
@@ -184,7 +166,9 @@ const FunctionNode = memo(
 					fitView({ nodes: currentNodes, padding: 0.2 });
 				}
 			}, 0);
-		}, [getNodes, id, normalisedParameters, setEdges, setNodes, fitView]);
+
+			return; // Nothing else to do for now.
+		}, [getNodes, id, setEdges, setNodes, fitView]);
 
 		// create body nodes on mount / when parameters change
 		React.useEffect(() => {

@@ -146,6 +146,18 @@ body {
 	box-shadow: none !important;
 }
 
+/* NEW: render edges above nodes so they remain visible on large parent nodes */
+.react-flow__edges {
+	z-index: 50 !important; /* greater than nodes (default 10) */
+	pointer-events: none; /* ensure edges don't block node interactions */
+}
+
+/* Optional: also raise temp connection lines */
+.react-flow__connection {
+	z-index: 50 !important;
+	pointer-events: none;
+}
+
 .react-flow__handle {
 	border: 2px solid var(--border);
 	width: 12px;
