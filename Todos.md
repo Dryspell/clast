@@ -2,20 +2,20 @@
 
 ## 🚨 High-Priority (Q2)
 
-- [ ] Refactor state flow to minimise `useEffect` cascades
-  - Use single source-of-truth `code` string in `FlowEditor`
-  - Derive `nodes` via `useMemo(parser.parseCode(code))`
-  - Make `CodePreview` purely derived from `nodes` (sync editor value via internal state)
-  - Expose controlled `nodes` + callbacks in `FlowCanvas` (no override UseEffect)
+- [x] Refactor state flow to minimise `useEffect` cascades
+  - [x] Single source-of-truth `code` string lives in `FlowEditor`
+  - [x] `nodes`/`edges` derived from `parser.parseCode(code)`
+  - [x] `CodePreview` is controlled by `code` prop
+  - [x] `FlowCanvas` receives controlled graph + change callbacks
 - [ ] Deep-parse expression chains in `Parser`
-  - Walk function bodies to detect `PropertyAccessExpression` and `CallExpression`
-  - Create `propertyAccess`, `call`, and `object` nodes with proper `parentId`
-  - Record edges during walk for React-Flow
-  - Support nested chains like `Math.random().toString(36).substring(7)`
+  - [x] Walk function bodies to detect `PropertyAccessExpression` and `CallExpression`
+  - [x] Create `propertyAccess`, `call`, and `object` nodes with proper `parentId`
+  - [x] Record edges during walk for React-Flow
+  - [x] Support nested chains like `Math.random().toString(36).substring(7)`
 - [ ] Auto-layout / edge reconstruction on parser output
-  - Map AST hierarchy → node positions (simple vertical stack first)
-  - Build edges array so graph renders functional dependencies immediately
-- [ ] Remove placeholder binary-op auto-insert in `FunctionNode`; real body is always expressed via parsed child nodes
+  - [x] Map AST hierarchy → node positions (simple vertical stack first)
+  - [x] Build edges array so graph renders functional dependencies immediately
+- [x] Remove placeholder binary-op auto-insert in `FunctionNode`; real body is always expressed via parsed child nodes
 
 ---
 
@@ -27,13 +27,19 @@
   - [x] Remove `node-types` import from `FunctionNode`
   - [x] Inject local `nodeTypes` object via `useMemo`
 - [ ] Restore node & edge update persistence after FlowEditor refactor
-  - [ ] Persist node position moves (`nodes.upsert`)
-  - [ ] Persist node deletions (`nodes.remove`)
-  - [ ] Persist edge deletions (`edges.remove`)
-- [ ] Re-add `flows.updatePreview` save on code changes in sidebar
-- [ ] Re-introduce initial code → flow graph parsing on mount
-- [ ] Tighten `FlowContextMenu.wrapperRef` prop typing (remove `null` union)
-- [ ] Remove residual barrel `node-types.ts` by inlining map into `FlowCanvas`
+  - [x] Persist node position moves (`nodes.upsert`)
+  - [x] Persist node deletions (`nodes.remove`)
+  - [x] Persist edge deletions (`edges.remove`)
+- [x] Re-add `flows.updatePreview` save on code changes in sidebar
+- [x] Re-introduce initial code → flow graph parsing on mount
+- [x] Tighten `FlowContextMenu.wrapperRef` prop typing (remove `null` union)
+- [x] Remove residual barrel `node-types.ts` by inlining map into `FlowCanvas`
+
+### 🚧 Follow-ups for state-flow refactor
+  - [x] When canvas connections change, set `parentId`/edges for round-trip fidelity
+  - [x] Regenerate code after edge additions/removals
+  - [x] Wrap new `onNodesChange/onEdgesChange` with Convex persistence helpers
+  - [x] Remove legacy local state & demo helpers in `FlowCanvas`
 
 ### 2. AST Parser & Code-Gen Pipeline
 

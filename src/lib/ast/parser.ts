@@ -99,6 +99,76 @@ export class Parser {
         return id;
       }
 
+      // Identifier treated as object reference within chain
+      if (ts.isIdentifier(expr)) {
+        const id = generateId();
+        const name = expr.text;
+        const node: AstNode = {
+          id,
+          type: 'object',
+          parentId,
+          data: { name, type: 'object' } as any,
+        };
+        pushNode(node);
+        return id;
+      }
+
+      // Object literal expression
+      if (ts.isObjectLiteralExpression(expr)) {
+        const id = generateId();
+        const properties = expr.properties
+          .filter(ts.isPropertyAssignment)
+          .map((p) => ({
+            key: (p.name as ts.Identifier).text,
+            value: p.initializer?.getText(),
+          }));
+
+        const node: AstNode = {
+          id,
+          type: 'object',
+          parentId,
+          data: { properties, type: 'object' } as any,
+        };
+        pushNode(node);
+
+        // Walk property values for nested expressions
+        expr.properties.forEach((p) => {
+          if (ts.isPropertyAssignment(p)) {
+            walkExpr(p.initializer, id);
+          }
+        });
+        return id;
+      }
+
+      // Literal expressions
+      if (
+        ts.isStringLiteral(expr) ||
+        ts.isNumericLiteral(expr) ||
+        (expr.kind === ts.SyntaxKind.TrueKeyword) ||
+        (expr.kind === ts.SyntaxKind.FalseKeyword)
+      ) {
+        const id = generateId();
+        const valueText = expr.getText();
+        const literalType = ts.isStringLiteral(expr)
+          ? 'string'
+          : ts.isNumericLiteral(expr)
+          ? 'number'
+          : 'boolean';
+
+        const node: AstNode = {
+          id,
+          type: 'literal',
+          parentId,
+          data: {
+            value: valueText.replace(/^['\"]|['\"]$/g, ''),
+            literalType,
+            type: 'literal',
+          } as any,
+        };
+        pushNode(node);
+        return id;
+      }
+
       // For BinaryExpression or others, you might add more cases later
       return undefined
     }

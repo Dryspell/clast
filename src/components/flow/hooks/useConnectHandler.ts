@@ -147,9 +147,12 @@ export function useConnectHandler({
           return updated;
         }
 
-        // Default – do nothing
-        prevNodesRef.current = nds;
-        return nds;
+        // Default: treat connection as parent-child edge
+        const updated = nds.map((n) =>
+          n.id === targetNode.id ? { ...n, parentId: sourceNode.id } : n
+        );
+        prevNodesRef.current = updated;
+        return updated;
       });
 
       // 3. Persist new edge (backend only)
