@@ -57,7 +57,12 @@
 
 ### 7. Expression Nodes Roadmap
 
-- [ ] Implement core expression nodes (`CallExpression`, `BinaryOp`, `Literal`, `PropertyAccess`, `Conditional`)
+- [ ] Implement core expression nodes
+  - [x] `BinaryOp`
+  - [x] `Literal`
+  - [x] `CallExpression` (Execute-Function node)
+  - [ ] `PropertyAccess`
+  - [ ] `Conditional`
 - [ ] Surface inferred type badges using TypeScript checker
 - [ ] Mini-flow overlay inside `FunctionNode` for pure expressions
 - [ ] Store AST `pos`/`end` on every node for round-trip fidelity

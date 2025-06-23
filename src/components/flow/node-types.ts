@@ -5,6 +5,9 @@ import { InterfaceNode } from './nodes/InterfaceNode';
 import { ApiNode } from './nodes/ApiNode';
 import { BinaryOpNode } from './nodes/BinaryOpNode'
 import { LiteralNode } from './nodes/LiteralNode'
+import { ConsoleNode } from './nodes/ConsoleNode'
+import { CallNode } from './nodes/CallNode'
+import { PropertyAccessNode } from './nodes/PropertyAccessNode'
 
 export const nodeTypes = {
   function: FunctionNode,
@@ -13,6 +16,9 @@ export const nodeTypes = {
   api: ApiNode,
   binaryOp: BinaryOpNode,
   literal: LiteralNode,
+  console: ConsoleNode,
+  call: CallNode,
+  propertyAccess: PropertyAccessNode,
 } as const;
 
 export type CustomNodeTypes = typeof nodeTypes;

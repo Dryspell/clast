@@ -22,5 +22,13 @@ export interface AstNode {
     /** For binary operation nodes */
     lhs?: string
     rhs?: string
+    /** For console nodes */
+    valueExpr?: string
+    /** For call nodes */
+    funcName?: string
+    args?: string[]
+    /** For property access */
+    property?: string
+    objExpr?: string
   }
 } 

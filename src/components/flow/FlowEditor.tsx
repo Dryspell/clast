@@ -35,6 +35,9 @@ import {
 	Globe,
 	Divide,
 	Quote,
+	TerminalSquare,
+	PlayCircle,
+	Circle,
 } from "lucide-react";
 import { BinaryOpNode } from "./nodes/BinaryOpNode";
 import { LiteralNode } from "./nodes/LiteralNode";
@@ -43,6 +46,9 @@ import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { generateId } from "@/lib/utils"
 import { SandboxRunner } from './SandboxRunner'
+import { ConsoleNode } from "./nodes/ConsoleNode";
+import { CallNode } from "./nodes/CallNode";
+import { PropertyAccessNode } from "./nodes/PropertyAccessNode";
 
 // Custom node types
 const nodeTypes = {
@@ -52,7 +58,10 @@ const nodeTypes = {
 	api: ApiNode,
 	binaryOp: BinaryOpNode,
 	literal: LiteralNode,
+	console: ConsoleNode,
+	call: CallNode,
 	labeledGroup: LabeledGroupNode,
+	propertyAccess: PropertyAccessNode,
 };
 
 export interface FlowEditorProps {
@@ -286,8 +295,148 @@ export function FlowEditor({ flowId, onSave, initialCode = "" }: FlowEditorProps
 					return updated;
 				}
 
+				// CONSOLE VALUE CONNECTION – capture expression from source node
+				if (
+					targetNode.type === "console" &&
+					params.targetHandle === "value"
+				) {
+					let expr = "";
+					if (sourceNode.type === "variable") {
+						expr = (sourceNode.data as any)?.name ?? "";
+					} else if (sourceNode.type === "literal") {
+						const lit = sourceNode.data as any;
+						expr = lit.literalType === "string" ? `"${lit.value}"` : lit.value;
+					} else if (sourceNode.type === "function") {
+						expr = `${(sourceNode.data as any)?.name ?? ""}()`;
+					} else if (sourceNode.type === "binaryOp") {
+						expr = `bin_${sourceNode.id.replace(/-/g, "_")}`;
+					} else if (sourceNode.type === "console") {
+						expr = `log_${sourceNode.id.replace(/-/g, "_")}`;
+					} else if (sourceNode.type === "call") {
+						expr = `call_${sourceNode.id.replace(/-/g, "_")}`;
+					} else if (sourceNode.type === "propertyAccess") {
+						expr = `prop_${sourceNode.id.replace(/-/g, "_")}`;
+					}
+
+					const updated = nds.map((n) =>
+						n.id === targetNode.id
+							? {
+									...n,
+									data: {
+										...n.data,
+										valueExpr: expr,
+									},
+							  }
+							: n
+					);
+					prevNodesRef.current = updated;
+					return updated;
+				}
+
+				// VARIABLE VALUE CONNECTION – extend to accept console/call/binaryOp as source
+				if (
+					targetNode.type === "variable" &&
+					params.targetHandle === "value" &&
+					(sourceNode.type === "variable" ||
+						sourceNode.type === "function" ||
+						sourceNode.type === "binaryOp" ||
+						sourceNode.type === "console" ||
+						sourceNode.type === "call" ||
+						sourceNode.type === "propertyAccess")
+				) {
+					let sourceExpr = "";
+					if (sourceNode.type === "function") {
+						sourceExpr = `${(sourceNode.data as any)?.name ?? ""}()`;
+					} else if (sourceNode.type === "binaryOp") {
+						sourceExpr = `bin_${sourceNode.id.replace(/-/g, "_")}`;
+					} else if (sourceNode.type === "console") {
+						sourceExpr = `log_${sourceNode.id.replace(/-/g, "_")}`;
+					} else if (sourceNode.type === "call") {
+						sourceExpr = `call_${sourceNode.id.replace(/-/g, "_")}`;
+					} else if (sourceNode.type === "propertyAccess") {
+						sourceExpr = `prop_${sourceNode.id.replace(/-/g, "_")}`;
+					} else {
+						sourceExpr = (sourceNode.data as any)?.name ?? "";
+					}
+
+					const updated = nds.map((n) =>
+						n.id === targetNode.id
+							? {
+									...n,
+									data: {
+										...n.data,
+										initializer: sourceExpr,
+									},
+							  }
+							: n
+					);
+					prevNodesRef.current = updated;
+					return updated;
+				}
+
+				// CALL NODE CONNECTIONS
+				if (targetNode.type === "call") {
+					// Function reference
+					if (params.targetHandle === "func") {
+						if (sourceNode.type === "function") {
+							const funcName = (sourceNode.data as any)?.name ?? "";
+							const updated = nds.map((n) =>
+								n.id === targetNode.id
+									? {
+											...n,
+											data: {
+												...n.data,
+												funcName,
+											},
+									  }
+									: n
+							);
+							prevNodesRef.current = updated;
+							return updated;
+						}
+					}
+
+					// Argument connection arg0 / arg1 / arg2 etc.
+					if (params.targetHandle?.startsWith("arg")) {
+						const argIndex = parseInt(params.targetHandle.slice(3), 10);
+						if (!isNaN(argIndex)) {
+							let expr = "";
+							if (sourceNode.type === "variable") {
+								expr = (sourceNode.data as any)?.name ?? "";
+							} else if (sourceNode.type === "literal") {
+								const lit = sourceNode.data as any;
+								expr = lit.literalType === "string" ? `"${lit.value}"` : lit.value;
+							} else if (sourceNode.type === "function") {
+								expr = `${(sourceNode.data as any)?.name ?? ""}()`;
+							} else if (sourceNode.type === "binaryOp") {
+								expr = `bin_${sourceNode.id.replace(/-/g, "_")}`;
+							} else if (sourceNode.type === "console") {
+								expr = `log_${sourceNode.id.replace(/-/g, "_")}`;
+							} else if (sourceNode.type === "call") {
+								expr = `call_${sourceNode.id.replace(/-/g, "_")}`;
+							} else if (sourceNode.type === "propertyAccess") {
+								expr = `prop_${sourceNode.id.replace(/-/g, "_")}`;
+							}
+
+							const updated = nds.map((n) => {
+								if (n.id !== targetNode.id) return n;
+								const args = [...((n.data as any).args ?? [])];
+								args[argIndex] = expr;
+								return {
+									...n,
+									data: {
+										...n.data,
+										args,
+									},
+								};
+							});
+							prevNodesRef.current = updated;
+							return updated;
+						}
+					}
+				}
+
 				// BINARY OPERATION OPERAND CONNECTION
-				// When an edge is made into lhs or rhs handle of a binaryOp node, store operand expression
 				if (
 					targetNode.type === "binaryOp" &&
 					(params.targetHandle === "lhs" || params.targetHandle === "rhs")
@@ -300,6 +449,14 @@ export function FlowEditor({ flowId, onSave, initialCode = "" }: FlowEditorProps
 						operandExpr = litData.literalType === "string" ? `"${litData.value}"` : litData.value;
 					} else if (sourceNode.type === "function") {
 						operandExpr = `${(sourceNode.data as any)?.name ?? ""}()`;
+					} else if (sourceNode.type === "binaryOp") {
+						operandExpr = `bin_${sourceNode.id.replace(/-/g, "_")}`;
+					} else if (sourceNode.type === "console") {
+						operandExpr = `log_${sourceNode.id.replace(/-/g, "_")}`;
+					} else if (sourceNode.type === "call") {
+						operandExpr = `call_${sourceNode.id.replace(/-/g, "_")}`;
+					} else if (sourceNode.type === "propertyAccess") {
+						operandExpr = `prop_${sourceNode.id.replace(/-/g, "_")}`;
 					}
 
 					const updated = nds.map((n) =>
@@ -317,21 +474,27 @@ export function FlowEditor({ flowId, onSave, initialCode = "" }: FlowEditorProps
 					return updated;
 				}
 
-				// VARIABLE VALUE CONNECTION – extend to accept binaryOp as source
+				// PROPERTY ACCESS OBJECT CONNECTION
 				if (
-					targetNode.type === "variable" &&
-					params.targetHandle === "value" &&
-					(sourceNode.type === "variable" ||
-						sourceNode.type === "function" ||
-						sourceNode.type === "binaryOp")
+					targetNode.type === "propertyAccess" &&
+					params.targetHandle === "obj"
 				) {
-					let sourceExpr = "";
-					if (sourceNode.type === "function") {
-						sourceExpr = `${(sourceNode.data as any)?.name ?? ""}()`;
+					let expr = "";
+					if (sourceNode.type === "variable") {
+						expr = (sourceNode.data as any)?.name ?? "";
+					} else if (sourceNode.type === "literal") {
+						const lit = sourceNode.data as any;
+						expr = lit.literalType === "string" ? `"${lit.value}"` : lit.value;
+					} else if (sourceNode.type === "function") {
+						expr = `${(sourceNode.data as any)?.name ?? ""}()`;
 					} else if (sourceNode.type === "binaryOp") {
-						sourceExpr = `bin_${sourceNode.id.replace(/-/g, "_")}`;
-					} else {
-						sourceExpr = (sourceNode.data as any)?.name ?? "";
+						expr = `bin_${sourceNode.id.replace(/-/g, "_")}`;
+					} else if (sourceNode.type === "console") {
+						expr = `log_${sourceNode.id.replace(/-/g, "_")}`;
+					} else if (sourceNode.type === "call") {
+						expr = `call_${sourceNode.id.replace(/-/g, "_")}`;
+					} else if (sourceNode.type === "propertyAccess") {
+						expr = `prop_${sourceNode.id.replace(/-/g, "_")}`;
 					}
 
 					const updated = nds.map((n) =>
@@ -340,7 +503,7 @@ export function FlowEditor({ flowId, onSave, initialCode = "" }: FlowEditorProps
 									...n,
 									data: {
 										...n.data,
-										initializer: sourceExpr,
+										objExpr: expr,
 									},
 							  }
 							: n
@@ -396,6 +559,12 @@ export function FlowEditor({ flowId, onSave, initialCode = "" }: FlowEditorProps
 				headers: {},
 				type,
 			};
+		} else if (type === "console") {
+			defaultData = { label: "log", type };
+		} else if (type === "call") {
+			defaultData = { funcName: undefined, args: [], type };
+		} else if (type === "propertyAccess") {
+			defaultData = { property: "prop", type };
 		} else {
 			defaultData = {
 				name: `New${type.charAt(0).toUpperCase() + type.slice(1)}`,
@@ -515,6 +684,20 @@ export function FlowEditor({ flowId, onSave, initialCode = "" }: FlowEditorProps
 					</ContextMenuItem>
 					<ContextMenuSeparator />
 					<ContextMenuItem
+						onSelect={() => handleContextMenuSelect("console")}
+						className="flex items-center gap-2"
+					>
+						<TerminalSquare className="h-4 w-4" />
+						<span>Add Console Log</span>
+					</ContextMenuItem>
+					<ContextMenuItem
+						onSelect={() => handleContextMenuSelect("call")}
+						className="flex items-center gap-2"
+					>
+						<PlayCircle className="h-4 w-4" />
+						<span>Call Function</span>
+					</ContextMenuItem>
+					<ContextMenuItem
 						onSelect={() => handleContextMenuSelect("binaryOp")}
 						className="flex items-center gap-2"
 					>
@@ -527,6 +710,13 @@ export function FlowEditor({ flowId, onSave, initialCode = "" }: FlowEditorProps
 					>
 						<Quote className="h-4 w-4" />
 						<span>Add Literal</span>
+					</ContextMenuItem>
+					<ContextMenuItem
+						onSelect={() => handleContextMenuSelect("propertyAccess")}
+						className="flex items-center gap-2"
+					>
+						<Circle className="h-4 w-4" />
+						<span>Property Access</span>
 					</ContextMenuItem>
 				</ContextMenuContent>
 			</ContextMenu>

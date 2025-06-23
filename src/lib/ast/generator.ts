@@ -54,6 +54,15 @@ export class CodeGenerator {
         case 'api':
           this.addApi(node);
           break;
+        case 'console':
+          this.addConsole(node);
+          break;
+        case 'call':
+          this.addCall(node);
+          break;
+        case 'propertyAccess':
+          this.addPropertyAccess(node);
+          break;
         default:
           // Unknown – just place a comment so users see an issue instead of silent failure
           this.sourceFile.addStatements(`// Unknown node type: ${node.type}`);
@@ -208,5 +217,51 @@ ${optsLines.map(l => '  ' + l).join(',\n')}
       '}',
       'return await response.json();',
     ]);
+  }
+
+  /**
+   * Add console.log side-effect with pass-through variable so downstream nodes can use the value
+   */
+  private addConsole(node: AstNode) {
+    const expr = (node.data as any).valueExpr ?? 'undefined';
+    const varName = `log_${node.id.replace(/-/g, '_')}`;
+    const initializer = `(() => { console.log(${expr}); return ${expr}; })()`;
+    this.sourceFile.addVariableStatement({
+      declarationKind: VariableDeclarationKind.Const,
+      isExported: true,
+      declarations: [{ name: varName, initializer }],
+    });
+  }
+
+  /**
+   * Add call expression node which invokes another function and stores result
+   */
+  private addCall(node: AstNode) {
+    const funcName = (node.data as any).funcName ?? 'unknownFunc';
+    const argsArr = ((node.data as any).args ?? []) as string[];
+    const args = argsArr.map((a) => a ?? 'undefined').join(', ');
+    const varName = `call_${node.id.replace(/-/g, '_')}`;
+    this.sourceFile.addVariableStatement({
+      declarationKind: VariableDeclarationKind.Const,
+      isExported: true,
+      declarations: [
+        {
+          name: varName,
+          initializer: `${funcName}(${args})`,
+        },
+      ],
+    });
+  }
+
+  private addPropertyAccess(node: AstNode) {
+    const prop = (node.data as any).property ?? 'prop';
+    const objExpr = (node.data as any).objExpr ?? 'undefined';
+    const varName = `prop_${node.id.replace(/-/g, '_')}`;
+    const initializer = `(${objExpr}).${prop}`;
+    this.sourceFile.addVariableStatement({
+      declarationKind: VariableDeclarationKind.Const,
+      isExported: true,
+      declarations: [{ name: varName, initializer }],
+    });
   }
 } 
