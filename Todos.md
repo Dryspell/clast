@@ -7,6 +7,14 @@
 - [x] Break circular import between `FunctionNode` ↔ `node-types`
   - [x] Remove `node-types` import from `FunctionNode`
   - [x] Inject local `nodeTypes` object via `useMemo`
+- [ ] Restore node & edge update persistence after FlowEditor refactor
+  - [ ] Persist node position moves (`nodes.upsert`)
+  - [ ] Persist node deletions (`nodes.remove`)
+  - [ ] Persist edge deletions (`edges.remove`)
+- [ ] Re-add `flows.updatePreview` save on code changes in sidebar
+- [ ] Re-introduce initial code → flow graph parsing on mount
+- [ ] Tighten `FlowContextMenu.wrapperRef` prop typing (remove `null` union)
+- [ ] Remove residual barrel `node-types.ts` by inlining map into `FlowCanvas`
 
 ### 2. AST Parser & Code-Gen Pipeline
 
