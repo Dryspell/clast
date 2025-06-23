@@ -63,6 +63,9 @@ export class CodeGenerator {
         case 'propertyAccess':
           this.addPropertyAccess(node);
           break;
+        case 'object':
+          this.addObject(node);
+          break;
         default:
           // Unknown – just place a comment so users see an issue instead of silent failure
           this.sourceFile.addStatements(`// Unknown node type: ${node.type}`);
@@ -95,6 +98,27 @@ export class CodeGenerator {
   }
 
   private addFunction(node: AstNode, children: AstNode[]) {
+    // If the original function body is still available (e.g. came from the
+    // initial code example) we simply re-emit that instead of generating a
+    // placeholder implementation.
+    if (node.data.body && typeof node.data.body === 'string') {
+      const func = this.sourceFile.addFunction({
+        isExported: true,
+        name: node.data.name,
+        parameters: (node.data.parameters ?? []).map((p: any) =>
+          typeof p === 'string'
+            ? { name: p.split(':')[0].trim(), type: p.split(':')[1]?.trim() }
+            : p
+        ),
+        returnType: node.data.returnType ?? undefined,
+        isAsync: node.data.async ?? false,
+      })
+
+      func.setBodyText(node.data.body)
+
+      return // Done – no further generation needed.
+    }
+
     const scopedVars = children.filter(c => c.type === 'variable');
     const binaryOps = children.filter(c => c.type === 'binaryOp');
 
@@ -262,6 +286,19 @@ ${optsLines.map(l => '  ' + l).join(',\n')}
       declarationKind: VariableDeclarationKind.Const,
       isExported: true,
       declarations: [{ name: varName, initializer }],
+    });
+  }
+
+  private addObject(node: AstNode) {
+    const name = (node.data as any).name || `obj_${node.id.replace(/-/g, '_')}`;
+    const propsRaw = ((node.data as any).properties ?? []) as Array<{ key: string; value?: string }>;
+    const propPairs = propsRaw.map(p => `${p.key}: ${p.value ?? 'undefined'}`);
+    const initializer = `{ ${propPairs.join(', ')} }`;
+
+    this.sourceFile.addVariableStatement({
+      declarationKind: VariableDeclarationKind.Const,
+      isExported: true,
+      declarations: [{ name, initializer }],
     });
   }
 } 

@@ -77,6 +77,10 @@ export function FlowContextMenu({ onCreate, wrapperRef, children }: Props) {
           <Quote className="h-4 w-4" />
           <span>Add Literal</span>
         </ContextMenuItem>
+        <ContextMenuItem onSelect={() => create("object")} className="flex items-center gap-2">
+          <Box className="h-4 w-4" />
+          <span>Add Object Literal</span>
+        </ContextMenuItem>
         <ContextMenuItem onSelect={() => create("propertyAccess")} className="flex items-center gap-2">
           <Circle className="h-4 w-4" />
           <span>Property Access</span>

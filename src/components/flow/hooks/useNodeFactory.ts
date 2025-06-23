@@ -48,6 +48,16 @@ export function useNodeFactory(flowId: string | undefined, setNodes: (updater: (
         case "propertyAccess":
           defaultData = { property: "prop", type };
           break;
+        case "object":
+          defaultData = {
+            name: "obj",
+            properties: [
+              { key: "id", value: "''" },
+              { key: "name", value: "''" },
+            ],
+            type,
+          };
+          break;
         default:
           defaultData = { name: `New${type.charAt(0).toUpperCase() + type.slice(1)}`, type };
           break;

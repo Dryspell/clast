@@ -30,5 +30,9 @@ export interface AstNode {
     /** For property access */
     property?: string
     objExpr?: string
+    /** Original function body (raw text) when parsed from code */
+    body?: string
+    /** For object literal nodes */
+    properties?: Array<{ key: string; value?: string }>
   }
 } 

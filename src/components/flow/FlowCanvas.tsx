@@ -2,72 +2,72 @@
 
 import "@xyflow/react/dist/style.css";
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useCallback } from 'react'
 import {
   ReactFlow,
   Controls,
   MiniMap,
   Background,
-} from "@xyflow/react";
-import { AstNode } from "@/lib/ast/types";
-import { useFlowSync } from "./hooks/useFlowSync";
-import { useNodeFactory } from "./hooks/useNodeFactory";
-import { useConnectHandler } from "./hooks/useConnectHandler";
-import { useDemoFlow } from "./hooks/useDemoFlow";
+  applyNodeChanges,
+  applyEdgeChanges,
+  NodeChange,
+  EdgeChange,
+  Node as RFNode,
+  Edge as RFEdge,
+} from '@xyflow/react'
+import { AstNode } from '@/lib/ast/types'
+import { useNodeFactory } from './hooks/useNodeFactory'
+import { useConnectHandler } from './hooks/useConnectHandler'
+import { useDemoFlow } from './hooks/useDemoFlow'
 import { FlowContextMenu } from "./FlowContextMenu";
 import { nodeTypes } from "./node-types"; // We'll need to export.
-import { Parser } from "@/lib/ast/parser";
 
 interface Props {
-  flowId?: string;
-  initialCode?: string;
-  onNodesChange?: (nodes: AstNode[]) => void;
+  flowId?: string
+  initialCode?: string
+  nodes: RFNode<any>[]
+  setNodes: React.Dispatch<React.SetStateAction<RFNode<any>[]>>
+  edges: RFEdge<any>[]
+  setEdges: React.Dispatch<React.SetStateAction<RFEdge<any>[]>>
+  onNodesExternalChange?: (nodes: AstNode[]) => void
 }
 
-export function FlowCanvas({ flowId, initialCode, onNodesChange }: Props) {
-  const reactFlowWrapper = useRef<HTMLDivElement>(null);
-
-  const {
-    nodes,
-    setNodes,
-    onNodesChange: flowSyncOnNodesChange,
-    edges,
-    setEdges,
-    onEdgesChange,
-  } = useFlowSync(flowId);
+export function FlowCanvas({
+  flowId,
+  initialCode,
+  nodes,
+  setNodes,
+  edges,
+  setEdges,
+  onNodesExternalChange,
+}: Props) {
+  const reactFlowWrapper = useRef<HTMLDivElement>(null)
 
   // attach demo flow when appropriate
-  useDemoFlow({ initialCode, nodes, setNodes, setEdges });
+  useDemoFlow({ initialCode, nodes, setNodes, setEdges })
 
-  // Parse `initialCode` into flow nodes when provided.
+  const createNode = useNodeFactory(flowId, setNodes)
+
+  const onConnect = useConnectHandler({ flowId, nodes, setNodes, setEdges })
+
+  const handleNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      setNodes((nds) => applyNodeChanges(changes, nds))
+    },
+    [setNodes]
+  )
+
+  const handleEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      setEdges((eds) => applyEdgeChanges(changes, eds))
+    },
+    [setEdges]
+  )
+
+  // propagate nodes upward when asked
   useEffect(() => {
-    if (initialCode && nodes.length === 0) {
-      try {
-        const parser = new Parser();
-        const astNodes = parser.parseCode(initialCode);
-        const flowNodes = astNodes.map((node: any) => ({
-          id: node.id,
-          type: node.type,
-          position: { x: 0, y: 0 },
-          data: node.data,
-        }));
-        if (flowNodes.length > 0) {
-          setNodes(flowNodes as any);
-        }
-      } catch (err) {
-        console.error("Failed to parse initial code", err);
-      }
-    }
-  }, [initialCode]);
-
-  const createNode = useNodeFactory(flowId, setNodes);
-
-  const onConnect = useConnectHandler({ flowId, nodes, setNodes, setEdges });
-
-  // Propagate node list upwards when asked
-  useEffect(() => {
-    onNodesChange?.(nodes as any);
-  }, [nodes, onNodesChange]);
+    onNodesExternalChange?.(nodes as any)
+  }, [nodes, onNodesExternalChange])
 
   return (
     <FlowContextMenu onCreate={createNode} wrapperRef={reactFlowWrapper}>
@@ -75,8 +75,8 @@ export function FlowCanvas({ flowId, initialCode, onNodesChange }: Props) {
         <ReactFlow
           nodes={nodes}
           edges={edges}
-          onNodesChange={flowSyncOnNodesChange}
-          onEdgesChange={onEdgesChange}
+          onNodesChange={handleNodesChange}
+          onEdgesChange={handleEdgesChange}
           onConnect={onConnect}
           nodeTypes={nodeTypes as any}
           fitView

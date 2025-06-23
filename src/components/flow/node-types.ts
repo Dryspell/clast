@@ -8,6 +8,7 @@ import { LiteralNode } from './nodes/LiteralNode'
 import { ConsoleNode } from './nodes/ConsoleNode'
 import { CallNode } from './nodes/CallNode'
 import { PropertyAccessNode } from './nodes/PropertyAccessNode'
+import { ObjectNode } from './nodes/ObjectNode'
 
 export const nodeTypes = {
   function: FunctionNode,
@@ -19,6 +20,7 @@ export const nodeTypes = {
   console: ConsoleNode,
   call: CallNode,
   propertyAccess: PropertyAccessNode,
+  object: ObjectNode,
 } as const;
 
 export type CustomNodeTypes = typeof nodeTypes;

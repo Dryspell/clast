@@ -1,5 +1,24 @@
 # CLAST TODOs
 
+## 🚨 High-Priority (Q2)
+
+- [ ] Refactor state flow to minimise `useEffect` cascades
+  - Use single source-of-truth `code` string in `FlowEditor`
+  - Derive `nodes` via `useMemo(parser.parseCode(code))`
+  - Make `CodePreview` purely derived from `nodes` (sync editor value via internal state)
+  - Expose controlled `nodes` + callbacks in `FlowCanvas` (no override UseEffect)
+- [ ] Deep-parse expression chains in `Parser`
+  - Walk function bodies to detect `PropertyAccessExpression` and `CallExpression`
+  - Create `propertyAccess`, `call`, and `object` nodes with proper `parentId`
+  - Record edges during walk for React-Flow
+  - Support nested chains like `Math.random().toString(36).substring(7)`
+- [ ] Auto-layout / edge reconstruction on parser output
+  - Map AST hierarchy → node positions (simple vertical stack first)
+  - Build edges array so graph renders functional dependencies immediately
+- [ ] Remove placeholder binary-op auto-insert in `FunctionNode`; real body is always expressed via parsed child nodes
+
+---
+
 ## Current Focus: AST Visualization and Editing
 
 ### 1. Immediate Bug-Fixes

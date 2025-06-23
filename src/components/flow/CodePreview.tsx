@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import Editor from '@monaco-editor/react'
 import { AstNode } from '@/lib/ast/types'
-import { generateCode } from '@/lib/actions/generate-code'
+import { generateCodeSync } from '@/lib/generateCodeSync'
 
 interface CodePreviewProps {
   nodes: AstNode[]
@@ -13,30 +13,17 @@ interface CodePreviewProps {
 }
 
 export function CodePreview({ nodes, initialCode = '', onCodeChange }: CodePreviewProps) {
-  const [code, setCode] = useState(initialCode)
+  const derivedCode = React.useMemo(() => {
+    if (nodes.length === 0) return initialCode
+    return generateCodeSync(nodes)
+  }, [nodes, initialCode])
 
+  const [code, setCode] = useState(derivedCode)
+
+  // Keep editor in sync when derivation changes
   useEffect(() => {
-    // If there are no nodes yet we fall back to the provided initialCode so
-    // that users immediately see something in the editor. Once nodes are
-    // available we switch to the generated code representation.
-    async function updateCode() {
-      try {
-        if (nodes.length === 0) {
-          // Only set when current code is still the initial one or empty to
-          // avoid overriding user edits.
-          setCode((prev) => (prev === '' || prev === initialCode ? initialCode : prev))
-          return
-        }
-
-        const generatedCode = await generateCode(nodes)
-        setCode(generatedCode)
-        onCodeChange?.(generatedCode)
-      } catch (error) {
-        console.error('Error generating code:', error)
-      }
-    }
-    updateCode()
-  }, [nodes, initialCode, onCodeChange])
+    setCode(derivedCode)
+  }, [derivedCode])
 
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
