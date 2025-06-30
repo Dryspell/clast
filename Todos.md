@@ -125,6 +125,42 @@
 - [x] Generated code snapshots (`flows.codePreview`)
 - [ ] Presence & cursor sharing (stretch)
 
+### 9. Authentication & Billing (AuthJS + Stripe)
+
+#### 9A  AuthJS × Convex
+
+- [ ] Finish **client-side** `src/lib/ConvexAdapter.ts` proxy
+  - [ ] Import generated API and call `api.authAdapter.*` functions with `secret`
+  - [ ] Remove temporary `@ts-ignore` once compiled
+- [ ] Add required **environment variables** to `.env.local`
+  - `NEXTAUTH_SECRET`, `GITHUB_ID`, `GITHUB_SECRET`
+  - `CONVEX_AUTH_ADAPTER_SECRET`, `CONVEX_AUTH_PRIVATE_KEY`
+- [ ] Set up `convex/auth.config.ts` with JWT provider entry
+- [ ] Publish JWKS via Convex HTTP action (`/.well-known/jwks.json`)
+- [ ] Run `npx convex dev` to regenerate types; deploy when stable
+- [ ] UI wiring
+  - [ ] Sign-In / Sign-Out buttons + avatar in `SiteHeader`
+  - [ ] Server route guards (`auth()` + `redirect`)
+- [ ] Retire / refactor `EnsureUser` once `users.ensureFromAuth` is active
+
+#### 9B  Stripe Billing
+
+- [ ] Extend Convex schema with `subscriptions` table (plan, status, etc.)
+- [ ] `/api/stripe/checkout` — create Checkout Session
+- [ ] `/api/stripe/webhook` — verify signature & upsert subscription row
+- [ ] `/api/stripe/portal` — Customer Portal redirect helper _(optional)_
+- [ ] Build **/pricing** page with plan cards + Upgrade CTA
+- [ ] Add Billing section in Settings → *Manage Subscription* link
+- [ ] Implement `useSubscriptionStatus()` hook & `hasActivePlan()` Convex query
+- [ ] Gate premium features via hook / query
+- [ ] Cypress e2e: free → paid upgrade flow
+
+#### 9C  DX & Docs
+
+- [ ] `.env.example` updated with new variables
+- [ ] README "Auth & Billing" quick-start section
+- [ ] Remove temporary `@ts-ignore` + placeholder stubs once complete
+
 ### Future Enhancements
 - [ ] Add more node types
   - [ ] Transform nodes

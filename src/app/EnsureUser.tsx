@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useSession } from "next-auth/react";
 
 /**
  * EnsureUser guarantees that there is a corresponding row in the `users` table
@@ -11,8 +12,12 @@ import { api } from "../../convex/_generated/api";
  */
 export function EnsureUser() {
   const ensureUser = useMutation(api.users.ensure);
+  const { data: session, status } = useSession();
 
   useEffect(() => {
+    // If user is authenticated, no need for anonymous ensure
+    if (session) return;
+
     // Skip in SSR / RSC environments – this runs only on the client
     const run = async () => {
       let anonId = localStorage.getItem("anonId");
@@ -29,7 +34,7 @@ export function EnsureUser() {
     run();
     // calling ensureUser is fine to list as dependency – but we want it only once
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ensureUser, session]);
 
   return null; // renders nothing
 } 

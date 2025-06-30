@@ -13,8 +13,11 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as authAdapter from "../authAdapter.js";
 import type * as edges from "../edges.js";
 import type * as flows from "../flows.js";
+import type * as http from "../http.js";
+import type * as jwks from "../jwks.js";
 import type * as nodes from "../nodes.js";
 import type * as users from "../users.js";
 
@@ -27,8 +30,11 @@ import type * as users from "../users.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  authAdapter: typeof authAdapter;
   edges: typeof edges;
   flows: typeof flows;
+  http: typeof http;
+  jwks: typeof jwks;
   nodes: typeof nodes;
   users: typeof users;
 }>;

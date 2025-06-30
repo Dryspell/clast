@@ -133,6 +133,123 @@ src/
 - Extend `createNestedFlowData()` demo to render `a + b` wired into `return`.
 - Verify round-trip by regenerating `return a + b` via the code-gen pipeline.
 
+## 🔐 Authentication (AuthJS + Convex)
+
+CLAST uses [AuthJS](https://authjs.dev/) (formerly **NextAuth**) to provide a secure, standards-based authentication flow on top of the Next.js App Router. AuthJS handles the heavy lifting of OAuth hand-shakes and session management, while Convex stores application-specific user data.
+
+### High-Level Flow
+
+1. **Client** triggers `signIn()` – AuthJS redirects to the chosen OAuth provider.
+2. After the callback, AuthJS issues a stateless **JWT session** stored in a cookie.
+3. The **AuthJS server route** ( `/api/auth/[...nextauth]/route.ts` ) exposes helper utilities (`auth()`, `getServerSession()`).
+4. A Convex mutation `users.ensureFromAuth` runs on first login to upsert the user record, linking the AuthJS `sub` to our `users` table.
+5. Protected server actions/components call `auth()` to retrieve the session and enforce access rules.
+
+### Implementation Checklist
+
+- Install packages:
+  ```bash
+  pnpm add next-auth @auth/core
+  ```
+- Create `/src/app/api/auth/[...nextauth]/route.ts` with:
+  ```ts
+  export const { auth, handlers } = NextAuth({
+    providers: [
+      GitHub({ clientId: process.env.GITHUB_ID!, clientSecret: process.env.GITHUB_SECRET! }),
+      /* add more providers */
+    ],
+    session: { strategy: "jwt" },
+    callbacks: {
+      async signIn({ user }) {
+        await convex.mutation("users:ensureFromAuth", { user })
+        return true
+      },
+    },
+  })
+  ```
+- Wrap RSC tree with `<SessionProvider>` in `src/app/layout.tsx` for client side access.
+- Use the `auth()` helper in server components and API routes to gate access.
+- Add simple UI controls in the **SiteHeader**: *Sign in / Sign out* button and user avatar dropdown.
+- Add the following to `.env.local`:
+  ```bash
+  NEXTAUTH_SECRET=...           # openssl rand -base64 32
+  NEXTAUTH_URL=http://localhost:3000
+  GITHUB_ID=...
+  GITHUB_SECRET=...
+  ```
+
+### Key Generation & Convex JWKS Setup
+
+1. **Generate RSA key-pair** (private key stays in Next.js env):
+   ```bash
+   # Private key (PEM)
+   openssl genrsa -out convex-private.pem 2048
+   # Public key
+   openssl rsa -in convex-private.pem -pubout -out convex-public.pem
+   ```
+
+2. **Convert public key → JWKS**  
+   Visit <https://mkjwk.org> (or any tool) → paste _convex-public.pem_ → select RSA-256 → copy the JSON under "JWK Set".
+
+3. **Environment variables**
+   Add the following to `.env.local` (Next.js) **and** to Convex env vars:
+   ```bash
+   # NextAuth / Adapter
+   CONVEX_AUTH_PRIVATE_KEY="$(cat convex-private.pem)"
+   CONVEX_AUTH_ADAPTER_SECRET=superSharedValue
+
+   # The JWKS JSON string (public key) – **only in Convex env**
+   JWKS='{ "keys": [ … ] }'
+   ```
+
+   • In local dev you can run `JWKS='{"keys":[…]}' npx convex dev` or pass `--env-file`.  
+   • In the Convex dashboard open *Environment Variables* → add `JWKS`.
+
+4. Restart `npx convex dev` & `pnpm dev` – AuthJS tokens will now validate end-to-end.
+
+## 💸 Payments & Billing (Stripe)
+
+Stripe powers CLAST's subscription and billing flows. We use **Checkout Sessions** for purchases and **Customer Portal** for self-service plan management.
+
+### High-Level Flow
+
+1. Authenticated user clicks *Upgrade* → calls `/api/stripe/checkout` to create a Checkout Session.
+2. Stripe redirects back to `/dashboard/billing?session_id=…` on success.
+3. Webhook at `/api/stripe/webhook` receives `checkout.session.completed`, `invoice.paid`, etc.
+4. Webhook handler verifies the signature, then a Convex mutation `subscriptions.upsert` records the active plan.
+5. Front-end components query `api.billing.getStatus` to unlock paid-only features.
+
+### Implementation Checklist
+
+- Install packages:
+  ```bash
+  pnpm add stripe @stripe/stripe-js
+  ```
+- Create `/src/app/api/stripe/checkout/route.ts`:
+  ```ts
+  const session = await stripe.checkout.sessions.create({
+    customer_email: session.user.email,
+    mode: "subscription",
+    line_items: [{ price: process.env.STRIPE_PRICE_PRO_ID, quantity: 1 }],
+    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing`,
+  })
+  return NextResponse.json({ url: session.url })
+  ```
+- Add `/src/app/api/stripe/webhook/route.ts` to handle events and update Convex.
+- Build `/pricing` page with plan cards and a call-to-action button.
+- Add *Billing* section in user **Settings** with *Manage Subscription* (Customer Portal) link.
+- Protect premium functionality with a `useSubscriptionStatus()` hook that reads Convex data.
+- Environment variables required in `.env.local`:
+  ```bash
+  STRIPE_SECRET_KEY=sk_live_...
+  STRIPE_WEBHOOK_SECRET=whsec_...
+  STRIPE_PRICE_PRO_ID=price_...
+  NEXT_PUBLIC_APP_URL=http://localhost:3000
+  ```
+
+> 💡 *Tip*: Use Stripe CLI (`stripe listen --forward-to localhost:3000/api/stripe/webhook`) during local development.
+
 ## 📄 License
 
 MIT
