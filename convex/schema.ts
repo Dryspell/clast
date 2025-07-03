@@ -105,6 +105,17 @@ export default defineSchema({
   })
     .index("userId", ["userId"])
     .index("credentialID", ["credentialID"]),
+
+  // Environment variables (API secrets) saved per user
+  env_vars: defineTable({
+    ownerId: v.id("users"),
+    key: v.string(), // the env var name, e.g. "OPENAI_API_KEY"
+    value: v.string(), // encrypted secret value
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_owner", ["ownerId"]) // list all vars for user
+    .index("owner_key", ["ownerId", "key"]),
 });
 
 export const userSchema = {
