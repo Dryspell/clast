@@ -161,6 +161,17 @@
 - [ ] README "Auth & Billing" quick-start section
 - [ ] Remove temporary `@ts-ignore` + placeholder stubs once complete
 
+### 10. Secure Environment Variable Storage
+
+- [x] Convex schema: `env_vars` table
+- [x] Node-based AES-256-GCM encryption actions (`convex/envVars.ts`)
+- [x] Core queries/mutations in default runtime (`convex/envVarsCore.ts`)
+- [x] Client helper wrapper (`src/lib/EnvVarsClient.ts`)
+- [x] Shared-secret auth (`CONVEX_ENV_VARS_SECRET`)
+- [x] Docs & README update
+- [ ] UI surface in Settings → add/edit/delete secrets (TBD)
+- [ ] Role-based access to secrets for collaborators (stretch)
+
 ### Future Enhancements
 - [ ] Add more node types
   - [ ] Transform nodes

@@ -1,5 +1,4 @@
 import { Node, Edge } from '@xyflow/react';
-import { NodeData } from './node-editor';
 
 export type FlowNode = Node<NodeData>;
 export type FlowEdge = Edge<{
@@ -22,4 +21,8 @@ export interface NodeFormData {
   initializer?: string;
   isAsync?: boolean;
   isExported?: boolean;
-} 
+}
+
+// Consolidated data type for all node variations used in the Flow editor.
+// TODO: Replace `any` with precise union of all node data interfaces.
+export type NodeData = Record<string, any>; 

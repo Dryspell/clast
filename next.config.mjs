@@ -70,6 +70,7 @@ const nextConfig = {
 			path: false,
 			os: false,
 			crypto: false,
+			perf_hooks: false,
 		};
 
 		// Suppress "Critical dependency: the request of a dependency is an expression"

@@ -91,6 +91,16 @@ src/
 
    ```bash
    cp .env.example .env.local
+   # Generate secrets for env-var storage
+   openssl rand -hex 32 # => copy → CONVEX_ENV_VARS_SECRET
+   openssl rand -hex 32 # => copy → ENV_VARS_ENCRYPTION_KEY
+   ```
+
+   Make sure to mirror **both** values into your Convex dev deployment:
+
+   ```bash
+   npx convex env set CONVEX_ENV_VARS_SECRET <same-hex>
+   npx convex env set ENV_VARS_ENCRYPTION_KEY <same-64-hex>
    ```
 
 5. Start the development server:
@@ -266,3 +276,36 @@ After running both `npx convex dev` and `pnpm dev`, open http://localhost:3000/f
 2. Get redirected to `/flows/<id>` where every node / edge change is saved live to Convex.
 
 Multiple browser tabs (or teammates) will see updates in real-time.
+
+## 🔑 Secure Per-User Environment Variables (NEW)
+
+CLAST now provides a built-in mechanism for users to store **API keys / secrets** safely inside Convex.  Secrets are:
+
+1. **Encrypted client-side** (AES-256-GCM) in a Node action before they ever touch the database.
+2. **Stored per user** in the new `env_vars` table (indexed by `ownerId` + `key`).
+3. **Decrypted only inside trusted server runtimes** when needed for outbound API calls.
+4. Protected by a shared secret (`CONVEX_ENV_VARS_SECRET`) so only the Next.js server can invoke the Convex actions.
+
+### Required Environment Variables
+
+Add these to **both** `.env.local` (Next.js) **and** your Convex deployment (`convex env`):
+
+```bash
+# 32-byte random string — authenticate all env-var actions
+aopenssl rand -hex 32 > tmp
+CONVEX_ENV_VARS_SECRET=<paste-value>
+
+# 32-byte (64-hex) AES key used for encryption/decryption
+ENV_VARS_ENCRYPTION_KEY=$(openssl rand -hex 32)
+```
+
+### Using the Helper Client
+
+```ts
+import { setEnvVar, getEnvVar, listEnvVars } from "@/lib/EnvVarsClient";
+
+await setEnvVar(userId, "OPENAI_API_KEY", "sk-…");
+const key = await getEnvVar(userId, "OPENAI_API_KEY"); // decrypted value
+```
+
+>  Only server-side code should call `getEnvVar()`; the browser can call `listEnvVars()` which returns names only (no values).
