@@ -18,6 +18,7 @@ import {
   TerminalSquare,
   PlayCircle,
   Circle,
+  HelpCircle,
 } from "lucide-react";
 
 interface Props {
@@ -84,6 +85,10 @@ export function FlowContextMenu({ onCreate, wrapperRef, children }: Props) {
         <ContextMenuItem onSelect={() => create("propertyAccess")} className="flex items-center gap-2">
           <Circle className="h-4 w-4" />
           <span>Property Access</span>
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => create("conditional")} className="flex items-center gap-2">
+          <HelpCircle className="h-4 w-4" />
+          <span>Conditional</span>
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

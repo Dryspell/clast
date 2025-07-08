@@ -40,6 +40,8 @@ export function useConnectHandler({
         return `call_${n.id.replace(/-/g, "_")}`;
       case "propertyAccess":
         return `prop_${n.id.replace(/-/g, "_")}`;
+      case "conditional":
+        return `cond_${n.id.replace(/-/g, "_")}`;
       default:
         return "";
     }
@@ -145,6 +147,31 @@ export function useConnectHandler({
           );
           prevNodesRef.current = updated;
           return updated;
+        }
+
+        // CONDITIONAL NODE CONNECTIONS
+        if (targetNode.type === "conditional") {
+          if (params.targetHandle === "test") {
+            const updated = nds.map((n) =>
+              n.id === targetNode.id ? { ...n, data: { ...n.data, testExpr: getExpr(sourceNode) } } : n
+            );
+            prevNodesRef.current = updated;
+            return updated;
+          }
+          if (params.targetHandle === "whenTrue") {
+            const updated = nds.map((n) =>
+              n.id === targetNode.id ? { ...n, data: { ...n.data, whenTrue: getExpr(sourceNode) } } : n
+            );
+            prevNodesRef.current = updated;
+            return updated;
+          }
+          if (params.targetHandle === "whenFalse") {
+            const updated = nds.map((n) =>
+              n.id === targetNode.id ? { ...n, data: { ...n.data, whenFalse: getExpr(sourceNode) } } : n
+            );
+            prevNodesRef.current = updated;
+            return updated;
+          }
         }
 
         // Default: treat connection as parent-child edge

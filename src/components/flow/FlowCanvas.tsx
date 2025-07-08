@@ -32,6 +32,7 @@ import { CallNode } from "./nodes/CallNode";
 import { PropertyAccessNode } from "./nodes/PropertyAccessNode";
 import { ObjectNode } from "./nodes/ObjectNode";
 import { LabeledGroupNode } from "./nodes/LabeledGroupNode";
+import { ConditionalNode } from "./nodes/ConditionalNode";
 
 // Consolidated React Flow nodeTypes map
 const nodeTypes = {
@@ -46,6 +47,7 @@ const nodeTypes = {
   propertyAccess: PropertyAccessNode,
   object: ObjectNode,
   group: LabeledGroupNode,
+  conditional: ConditionalNode,
 } as const;
 
 interface Props {
@@ -58,6 +60,7 @@ interface Props {
   /** Optional callbacks from useFlowSync that also persist to Convex */
   onNodesChange?: (changes: NodeChange[]) => void
   onEdgesChange?: (changes: EdgeChange[]) => void
+  errorIds?: Set<string>
 }
 
 export function FlowCanvas({
@@ -69,6 +72,7 @@ export function FlowCanvas({
   onNodesExternalChange,
   onNodesChange: onNodesChangeProp,
   onEdgesChange: onEdgesChangeProp,
+  errorIds,
 }: Props) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
 
@@ -99,11 +103,16 @@ export function FlowCanvas({
     onNodesExternalChange?.(nodes as any)
   }, [nodes, onNodesExternalChange])
 
+  const displayedNodes = React.useMemo(() => {
+    if (!errorIds || errorIds.size === 0) return nodes;
+    return nodes.map(n => errorIds.has(n.id) ? { ...n, style: { ...n.style, border: '2px solid #dc2626' } } : n);
+  }, [nodes, errorIds]);
+
   return (
     <FlowContextMenu onCreate={createNode} wrapperRef={reactFlowWrapper}>
       <div className="h-full w-full" ref={reactFlowWrapper}>
         <ReactFlow
-          nodes={nodes}
+          nodes={displayedNodes}
           edges={edges}
           onNodesChange={handleNodesChange}
           onEdgesChange={handleEdgesChange}

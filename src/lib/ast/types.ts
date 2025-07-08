@@ -3,6 +3,8 @@ export interface AstNode {
   type: string
   /** Parent node id when this node is scoped inside another (e.g., variable inside function) */
   parentId?: string
+  pos?: number
+  end?: number
   data: {
     name: string
     parameters?: Array<{ name: string; type?: string }> | string[]
@@ -34,5 +36,16 @@ export interface AstNode {
     body?: string
     /** For object literal nodes */
     properties?: Array<{ key: string; value?: string }>
+    /** For conditional (ternary) expression nodes */
+    testExpr?: string
+    whenTrue?: string
+    whenFalse?: string
+    /** For import nodes */
+    module?: string
+    imported?: string[]
+    defaultImport?: string
+    namespaceImport?: string
+    /** For export nodes */
+    exported?: string[]
   }
 } 

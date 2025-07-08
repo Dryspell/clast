@@ -58,6 +58,9 @@ export function useNodeFactory(flowId: string | undefined, setNodes: (updater: (
             type,
           };
           break;
+        case "conditional":
+          defaultData = { testExpr: "a === b", whenTrue: "true", whenFalse: "false", type };
+          break;
         default:
           defaultData = { name: `New${type.charAt(0).toUpperCase() + type.slice(1)}`, type };
           break;

@@ -11,9 +11,10 @@ interface Props {
   flowId?: string;
   onCodeChange: (code: string) => void;
   onSave?: (code: string) => void;
+  onDiagnostics?: (diags: any[]) => void;
 }
 
-export function FlowSidebar({ code, flowId, onCodeChange, onSave }: Props) {
+export function FlowSidebar({ code, flowId, onCodeChange, onSave, onDiagnostics }: Props) {
   const updatePreview = useMutation(api.flows.updatePreview);
 
   const handleCodeChange = useCallback(
@@ -31,7 +32,7 @@ export function FlowSidebar({ code, flowId, onCodeChange, onSave }: Props) {
   return (
     <div className="flex h-full w-full flex-col">
       <div className="flex-1 overflow-hidden">
-        <CodePreview code={code} onCodeChange={handleCodeChange} />
+        <CodePreview code={code} onCodeChange={handleCodeChange} onDiagnostics={onDiagnostics} />
       </div>
       <div className="h-48 border-t">
         <SandboxRunner code={code} />

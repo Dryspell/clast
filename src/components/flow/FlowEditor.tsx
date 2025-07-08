@@ -9,6 +9,7 @@ import { Node as RFNode, Edge as RFEdge, applyNodeChanges, applyEdgeChanges, Nod
 import { generateCodeSync } from "@/lib/generateCodeSync";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { applyDagreLayout } from "./utils/applyDagreLayout";
 
 export interface FlowEditorProps {
 	/** Optional Convex flow document ID. When omitted, FlowEditor operates in local-only/demo mode. */
@@ -57,7 +58,8 @@ export function FlowEditor({ flowId, onSave, initialCode }: FlowEditorProps) {
 	const graphInitial = React.useMemo(() => {
 		try {
 			const ast = parserRef.current.parseCode(code);
-			return astToGraph(ast);
+			const g = astToGraph(ast);
+			return { rfNodes: applyDagreLayout(g.rfNodes, g.rfEdges), rfEdges: g.rfEdges };
 		} catch {
 			return { rfNodes: [], rfEdges: [] };
 		}
@@ -71,12 +73,19 @@ export function FlowEditor({ flowId, onSave, initialCode }: FlowEditorProps) {
 		try {
 			const ast = parserRef.current.parseCode(code);
 			const { rfNodes, rfEdges } = astToGraph(ast);
-			setNodes(rfNodes);
+			// First run Dagre layout for all nodes
+			const laidOut = applyDagreLayout(rfNodes, rfEdges);
+			// Then restore previous positions where available to avoid jitter
+			const merged = laidOut.map((n) => {
+				const existing = nodes.find((e) => e.id === n.id);
+				return existing ? { ...n, position: existing.position } : n;
+			});
+			setNodes(merged);
 			setEdges(rfEdges);
 		} catch {
 			// ignore parse errors – keep current graph
 		}
-	}, [code, astToGraph]);
+	}, [code, astToGraph, nodes]);
 
 	// --------- When NODES change (canvas edits) -> regenerate code ---------
 	const updateCodeFromNodes = React.useCallback(
@@ -87,8 +96,7 @@ export function FlowEditor({ flowId, onSave, initialCode }: FlowEditorProps) {
 				parentId: (n as any).parentId,
 				data: n.data as any,
 			}));
-			const newCode = generateCodeSync(astNodes);
-			setCode(newCode);
+			generateCodeSync(astNodes).then(setCode);
 		},
 		[]
 	);
@@ -158,12 +166,28 @@ export function FlowEditor({ flowId, onSave, initialCode }: FlowEditorProps) {
 			parentId: (n as any).parentId,
 			data: n.data as any,
 		}));
-		const regenerated = generateCodeSync(astNodes);
-		if (regenerated !== code) {
-			setCode(regenerated);
-		}
+		generateCodeSync(astNodes).then((regenerated) => {
+			if (regenerated !== code) {
+				setCode(regenerated);
+			}
+		});
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [nodes]);
+
+	const [errorIds, setErrorIds] = React.useState<Set<string>>(new Set());
+
+	const handleDiagnostics = React.useCallback((diags: any[]) => {
+		const ids = new Set<string>();
+		try {
+			const ast = parserRef.current.parseCode(code);
+			for (const d of diags) {
+				if (typeof d.start !== 'number') continue;
+				const n = ast.find((n) => d.start >= (n.pos ?? 0) && d.start <= (n.end ?? 0));
+				if (n) ids.add(n.id);
+			}
+		} catch {}
+		setErrorIds(ids);
+	}, [code]);
 
 	return (
 		<div className="grid h-full grid-cols-[1fr_400px]">
@@ -175,6 +199,7 @@ export function FlowEditor({ flowId, onSave, initialCode }: FlowEditorProps) {
 				flowId={flowId}
 				onNodesChange={onNodesChange}
 				onEdgesChange={onEdgesChange}
+				errorIds={errorIds}
 			/>
 
 			<FlowSidebar
@@ -182,6 +207,7 @@ export function FlowEditor({ flowId, onSave, initialCode }: FlowEditorProps) {
 				flowId={flowId}
 				onSave={onSave}
 				onCodeChange={handleCodeChange}
+				onDiagnostics={handleDiagnostics}
 			/>
 		</div>
 	);

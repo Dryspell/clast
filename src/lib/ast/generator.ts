@@ -66,6 +66,15 @@ export class CodeGenerator {
         case 'object':
           this.addObject(node);
           break;
+        case 'conditional':
+          this.addConditional(node);
+          break;
+        case 'import':
+          this.addImport(node);
+          break;
+        case 'export':
+          this.addExport(node);
+          break;
         default:
           // Unknown – just place a comment so users see an issue instead of silent failure
           this.sourceFile.addStatements(`// Unknown node type: ${node.type}`);
@@ -300,5 +309,43 @@ ${optsLines.map(l => '  ' + l).join(',\n')}
       isExported: true,
       declarations: [{ name, initializer }],
     });
+  }
+
+  private addConditional(node: AstNode) {
+    const testExpr = (node.data as any).testExpr ?? 'false';
+    const whenTrue = (node.data as any).whenTrue ?? 'undefined';
+    const whenFalse = (node.data as any).whenFalse ?? 'undefined';
+    const varName = `cond_${node.id.replace(/-/g, '_')}`;
+    const initializer = `(${testExpr}) ? ${whenTrue} : ${whenFalse}`;
+    this.sourceFile.addVariableStatement({
+      declarationKind: VariableDeclarationKind.Const,
+      isExported: true,
+      declarations: [{ name: varName, initializer }],
+    });
+  }
+
+  private addImport(node: AstNode) {
+    const mod = (node.data as any).module;
+    const defaultImport = (node.data as any).defaultImport as string | undefined;
+    const namespaceImport = (node.data as any).namespaceImport as string | undefined;
+    const named = ((node.data as any).imported ?? []) as string[];
+
+    let clause = '';
+    const parts: string[] = [];
+    if (defaultImport) parts.push(defaultImport);
+    if (namespaceImport) parts.push(`* as ${namespaceImport}`);
+    if (named.length) parts.push(`{ ${named.join(', ')} }`);
+    clause = parts.join(', ');
+    this.sourceFile.addStatements(`import ${clause} from '${mod}';`);
+  }
+
+  private addExport(node: AstNode) {
+    const exported = ((node.data as any).exported ?? []) as string[];
+    const mod = (node.data as any).module as string | undefined;
+    if (mod) {
+      this.sourceFile.addStatements(`export { ${exported.join(', ')} } from '${mod}';`);
+    } else {
+      this.sourceFile.addStatements(`export { ${exported.join(', ')} };`);
+    }
   }
 } 

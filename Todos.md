@@ -7,12 +7,12 @@
   - [x] `nodes`/`edges` derived from `parser.parseCode(code)`
   - [x] `CodePreview` is controlled by `code` prop
   - [x] `FlowCanvas` receives controlled graph + change callbacks
-- [ ] Deep-parse expression chains in `Parser`
+- [x] Deep-parse expression chains in `Parser`
   - [x] Walk function bodies to detect `PropertyAccessExpression` and `CallExpression`
   - [x] Create `propertyAccess`, `call`, and `object` nodes with proper `parentId`
   - [x] Record edges during walk for React-Flow
   - [x] Support nested chains like `Math.random().toString(36).substring(7)`
-- [ ] Auto-layout / edge reconstruction on parser output
+- [x] Auto-layout / edge reconstruction on parser output
   - [x] Map AST hierarchy → node positions (simple vertical stack first)
   - [x] Build edges array so graph renders functional dependencies immediately
 - [x] Remove placeholder binary-op auto-insert in `FunctionNode`; real body is always expressed via parsed child nodes
@@ -26,7 +26,7 @@
 - [x] Break circular import between `FunctionNode` ↔ `node-types`
   - [x] Remove `node-types` import from `FunctionNode`
   - [x] Inject local `nodeTypes` object via `useMemo`
-- [ ] Restore node & edge update persistence after FlowEditor refactor
+- [x] Restore node & edge update persistence after FlowEditor refactor
   - [x] Persist node position moves (`nodes.upsert`)
   - [x] Persist node deletions (`nodes.remove`)
   - [x] Persist edge deletions (`edges.remove`)
@@ -46,11 +46,11 @@
 - [ ] Build AST parser service
   - [ ] Tokenise & parse TypeScript with `@babel/parser`
   - [ ] Map AST → Flow nodes (`AstNode -> ReactFlow.Node`)
-  - [ ] Handle `import` / `export` statements
+  - [x] Handle `import` / `export` statements
   - [ ] Capture source ranges for later code mapping
 - [ ] Implement generator
-  - [ ] Flow nodes → valid TS code
-  - [ ] Preserve formatting via Prettier
+  - [x] Flow nodes → valid TS code
+  - [x] Preserve formatting via Prettier
   - [x] Regenerate on node changes (instant)
 
 ### 3. Function-Node UX (MVP)
@@ -73,9 +73,9 @@
 
 ### 5. Editor & Preview
 
-- [ ] Two-way sync Monaco ↔ Flow graph
-- [ ] Real-time type-checking in WebWorker
-- [ ] Error markers map back to offending nodes
+- [x] Two-way sync Monaco ↔ Flow graph
+- [x] Real-time type-checking
+- [x] Error markers map back to offending nodes
 
 ### 6. User Experience Strategy
 
@@ -94,11 +94,11 @@
   - [x] `BinaryOp`
   - [x] `Literal`
   - [x] `CallExpression` (Execute-Function node)
-  - [ ] `PropertyAccess`
-  - [ ] `Conditional`
+  - [x] `PropertyAccess`
+  - [x] `Conditional`
 - [ ] Surface inferred type badges using TypeScript checker
 - [ ] Mini-flow overlay inside `FunctionNode` for pure expressions
-- [ ] Store AST `pos`/`end` on every node for round-trip fidelity
+- [x] Store AST `pos`/`end` on every node for round-trip fidelity
 - [ ] DAG layout on demand for expanded expression graphs
 - [ ] Prototype slice: `BinaryOpNode` + `LiteralNode` round-trip (`a + b` → `return a + b`)
 
@@ -175,7 +175,7 @@
 ### Future Enhancements
 - [ ] Add more node types
   - [ ] Transform nodes
-  - [ ] Condition nodes
+  - [x] Condition nodes
   - [ ] Loop nodes
 - [ ] Implement node configuration dialogs
 - [ ] Add API testing features
