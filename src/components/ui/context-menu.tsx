@@ -176,7 +176,7 @@ function ContextMenuRadioItem({
     >
       <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
         <ContextMenuPrimitive.ItemIndicator>
-          <CircleIcon className="size-2 fill-current" />
+          <CircleIcon className="fill-current size-2" />
         </ContextMenuPrimitive.ItemIndicator>
       </span>
       {children}
@@ -211,7 +211,7 @@ function ContextMenuSeparator({
   return (
     <ContextMenuPrimitive.Separator
       data-slot="context-menu-separator"
-      className={cn("bg-border -mx-1 my-1 h-px", className)}
+      className={cn("-mx-1 my-1 h-px bg-border", className)}
       {...props}
     />
   )
@@ -225,7 +225,7 @@ function ContextMenuShortcut({
     <span
       data-slot="context-menu-shortcut"
       className={cn(
-        "text-muted-foreground ml-auto text-xs tracking-widest",
+        "ml-auto text-xs tracking-widest text-muted-foreground",
         className
       )}
       {...props}

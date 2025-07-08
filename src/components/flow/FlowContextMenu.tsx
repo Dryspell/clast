@@ -43,7 +43,15 @@ export function FlowContextMenu({ onCreate, wrapperRef, children }: Props) {
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger className="h-full w-full">{children}</ContextMenuTrigger>
+      {/*
+       * Use `asChild` to ensure Radix doesn’t introduce an extra wrapper element around the
+       * React Flow canvas. This keeps the same anchor element reference between renders and
+       * prevents Popper’s internal state updates from cascading into an infinite render loop
+       * ("Maximum update depth exceeded").
+       */}
+      <ContextMenuTrigger asChild className="h-full w-full">
+        {children}
+      </ContextMenuTrigger>
       <ContextMenuContent className="w-48">
         <ContextMenuItem onSelect={() => create("variable")} className="flex items-center gap-2">
           <Variable className="h-4 w-4" />

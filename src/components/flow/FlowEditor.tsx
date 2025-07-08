@@ -80,12 +80,15 @@ export function FlowEditor({ flowId, onSave, initialCode }: FlowEditorProps) {
 				const existing = nodes.find((e) => e.id === n.id);
 				return existing ? { ...n, position: existing.position } : n;
 			});
+			// Set flag to prevent the nodes effect from triggering code regeneration
+			updatingFromCodeRef.current = true;
 			setNodes(merged);
 			setEdges(rfEdges);
 		} catch {
 			// ignore parse errors – keep current graph
 		}
-	}, [code, astToGraph, nodes]);
+		// Only depend on code changes, not nodes or astToGraph to avoid circular updates
+	}, [code]);
 
 	// --------- When NODES change (canvas edits) -> regenerate code ---------
 	const updateCodeFromNodes = React.useCallback(
@@ -159,7 +162,15 @@ export function FlowEditor({ flowId, onSave, initialCode }: FlowEditorProps) {
 	const handleCodeChange = React.useCallback((newCode: string) => setCode(newCode), []);
 
 	// Keep code in sync if nodes changed elsewhere (e.g., via setNodes in connect handler)
+	// Use a ref to track if we're in the middle of a code->nodes update to prevent loops
+	const updatingFromCodeRef = React.useRef(false);
 	React.useEffect(() => {
+		// Skip if we're currently updating nodes from code to prevent circular updates
+		if (updatingFromCodeRef.current) {
+			updatingFromCodeRef.current = false;
+			return;
+		}
+		
 		const astNodes: AstNode[] = nodes.map((n) => ({
 			id: n.id,
 			type: n.type ?? "",
