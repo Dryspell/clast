@@ -105,9 +105,27 @@ export function useConnectHandler({
         if (targetNode.type === "call") {
           // func reference
           if (params.targetHandle === "func" && sourceNode.type === "function") {
+            const sourceData = sourceNode.data as any;
+            let expectedArgs: string[] = [];
+            
+            // Extract parameters from function node
+            if (Array.isArray(sourceData.parameters)) {
+              expectedArgs = sourceData.parameters;
+            } else if (typeof sourceData.parameters === 'string') {
+              expectedArgs = sourceData.parameters.split(',').map((p: string) => p.trim()).filter(Boolean);
+            }
+            
             const updated = nds.map((n) =>
               n.id === targetNode.id
-                ? { ...n, data: { ...n.data, funcName: (sourceNode.data as any)?.name ?? "" } }
+                ? { 
+                    ...n, 
+                    data: { 
+                      ...n.data, 
+                      funcName: sourceData?.name ?? "",
+                      expectedArgs,
+                      args: [] // Reset args when function changes
+                    } 
+                  }
                 : n
             );
             prevNodesRef.current = updated;
@@ -174,12 +192,16 @@ export function useConnectHandler({
           }
         }
 
-        // Default: treat connection as parent-child edge
-        const updated = nds.map((n) =>
-          n.id === targetNode.id ? { ...n, parentId: sourceNode.id } : n
-        );
-        prevNodesRef.current = updated;
-        return updated;
+        // FUNCTION PARAMETER CONNECTIONS
+        if (targetNode.type === "function" && params.targetHandle?.startsWith("param-")) {
+          // Don't make the function a child of the variable - just allow the connection for visual feedback
+          // The parameter connection is handled by the visual edge only
+          return nds;
+        }
+
+        // Default: Only treat as parent-child for specific cases to avoid unwanted node hiding
+        // This is now much more restrictive to prevent accidental node deletion
+        return nds;
       });
 
       // 3. Persist new edge (backend only)

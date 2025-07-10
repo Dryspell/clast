@@ -34,24 +34,29 @@ interface Props {
 export function FlowContextMenu({ onCreate, wrapperRef, children }: Props) {
   const create = useCallback(
     (type: string) => {
-      if (!wrapperRef.current) return;
-      const bounds = wrapperRef.current.getBoundingClientRect();
-      onCreate(type, { x: bounds.width / 2, y: bounds.height / 2 });
+      const wrapper = wrapperRef.current;
+      if (!wrapper) {
+        console.warn("No wrapper found, creating at origin");
+        onCreate(type, { x: 100, y: 100 });
+        return;
+      }
+
+      const rect = wrapper.getBoundingClientRect();
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      
+      console.log(`Creating ${type} node at position:`, { x: centerX, y: centerY });
+      onCreate(type, { x: centerX, y: centerY });
     },
     [onCreate, wrapperRef]
   );
 
   return (
     <ContextMenu>
-      {/*
-       * Use `asChild` to ensure Radix doesn’t introduce an extra wrapper element around the
-       * React Flow canvas. This keeps the same anchor element reference between renders and
-       * prevents Popper’s internal state updates from cascading into an infinite render loop
-       * ("Maximum update depth exceeded").
-       */}
-      <ContextMenuTrigger asChild className="h-full w-full">
+      <ContextMenuTrigger asChild>
         {children}
       </ContextMenuTrigger>
+
       <ContextMenuContent className="w-48">
         <ContextMenuItem onSelect={() => create("variable")} className="flex items-center gap-2">
           <Variable className="h-4 w-4" />

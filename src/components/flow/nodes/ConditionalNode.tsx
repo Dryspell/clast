@@ -43,9 +43,9 @@ const ConditionalNode = memo(({ data, id, isConnectable }: ConditionalNodeProps)
   return (
     <div className="relative w-[180px] rounded-lg border bg-card p-3 shadow-sm transition-shadow hover:shadow-md">
       {/* Header */}
-      <div className="mb-2 flex items-center gap-2">
-        <div className="flex h-5 w-5 items-center justify-center rounded bg-rose-500/10">
-          <HelpCircle className="h-3 w-3 text-rose-600" />
+      <div className="flex gap-2 items-center mb-2">
+        <div className="flex justify-center items-center w-5 h-5 rounded bg-rose-500/10">
+          <HelpCircle className="w-3 h-3 text-rose-600" />
         </div>
         <span className="text-xs font-medium">if ?</span>
         <Input
@@ -55,7 +55,7 @@ const ConditionalNode = memo(({ data, id, isConnectable }: ConditionalNodeProps)
             setTestExpr(v)
             updateNodeData({ testExpr: v })
           }}
-          className="h-6 flex-1 text-xs"
+          className="flex-1 h-6 text-xs"
           placeholder="condition"
           onKeyDown={(e) => {
             if (e.key === 'Enter') e.preventDefault()

@@ -104,7 +104,7 @@ const VariableNode = memo(({ data, isConnectable, id }: VariableNodeProps) => {
               type="target"
               position={Position.Left}
               isConnectable={isConnectable}
-              className="absolute -left-3 top-1/2 -translate-y-1/2 !h-3 !w-3 !rounded-full !bg-purple-500"
+              className="absolute -left-2 top-1/2 -translate-y-1/2 !h-4 !w-4 !rounded-full !bg-purple-500 !border-2 !border-white !opacity-80 hover:!opacity-100 transition-opacity"
               title="Connect an Interface/Type here to set variable type"
             />
             <Select
@@ -133,7 +133,7 @@ const VariableNode = memo(({ data, isConnectable, id }: VariableNodeProps) => {
               type="target"
               position={Position.Left}
               isConnectable={isConnectable}
-              className="absolute -left-3 top-1/2 -translate-y-1/2 !h-3 !w-3 !rounded-full !bg-blue-500"
+              className="absolute -left-2 top-1/2 -translate-y-1/2 !h-4 !w-4 !rounded-full !bg-blue-500 !border-2 !border-white !opacity-80 hover:!opacity-100 transition-opacity"
               title="Connect a Variable or Function to initialise this variable"
             />
             <Input
@@ -157,7 +157,8 @@ const VariableNode = memo(({ data, isConnectable, id }: VariableNodeProps) => {
         type="source"
         position={Position.Right}
         isConnectable={isConnectable}
-        className="!right-0 !h-3 !w-3 !rounded-full !bg-blue-500"
+        className="!h-4 !w-4 !rounded-full !bg-blue-500 !border-2 !border-white !opacity-90 hover:!opacity-100 transition-opacity"
+        style={{ right: -8, top: '50%', transform: 'translateY(-50%)' }}
         title="Drag from here to use this variable"
       />
     </div>

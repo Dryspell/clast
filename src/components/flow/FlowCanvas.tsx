@@ -110,7 +110,7 @@ export function FlowCanvas({
 
   return (
     <FlowContextMenu onCreate={createNode} wrapperRef={reactFlowWrapper}>
-      <div className="h-full w-full" ref={reactFlowWrapper}>
+      <div className="w-full h-full" ref={reactFlowWrapper}>
         <ReactFlow
           nodes={displayedNodes}
           edges={edges}

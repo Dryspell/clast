@@ -43,7 +43,14 @@ export function useNodeFactory(flowId: string | undefined, setNodes: (updater: (
           defaultData = { label: "log", type };
           break;
         case "call":
-          defaultData = { funcName: undefined, args: [], type };
+          defaultData = { 
+            funcName: undefined, 
+            args: [], 
+            expectedArgs: [], 
+            label: "",
+            type: "call" 
+          };
+          console.log('Creating call node with data:', defaultData);
           break;
         case "propertyAccess":
           defaultData = { property: "prop", type };

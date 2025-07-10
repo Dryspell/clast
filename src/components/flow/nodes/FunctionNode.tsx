@@ -25,7 +25,7 @@ import {
 	ContextMenuItem,
 	ContextMenuSeparator,
 } from "@/components/ui/context-menu";
-import { Variable, Divide, Quote } from "lucide-react";
+import { Variable, Divide, Quote, PlayCircle, Plus, Code } from "lucide-react";
 
 interface FunctionNodeProps extends NodeProps {
 	data: FunctionNodeData;
@@ -63,6 +63,7 @@ const FunctionNode = memo(
 		const { setNodes, setEdges, getNodes, getEdges, fitView } =
 			useReactFlow();
 		const [isEditingParams, setIsEditingParams] = useState(false);
+		const [isBodyExpanded, setIsBodyExpanded] = useState(false);
 		const [paramsInput, setParamsInput] = useState(() => {
 			if (!data.parameters) return "";
 			if (Array.isArray(data.parameters)) {
@@ -176,6 +177,65 @@ const FunctionNode = memo(
 			// eslint-disable-next-line react-hooks/exhaustive-deps
 		}, [normalisedParameters]);
 
+		// Calculate usage count (how many CallNodes reference this function)
+		const usageCount = React.useMemo(() => {
+			const nodes = getNodes();
+			return nodes.filter(n => 
+				n.type === 'call' && n.data.funcName === data.name
+			).length;
+		}, [getNodes, data.name]);
+
+		// Quick call function
+		const createQuickCall = React.useCallback(() => {
+			const callNodeId = generateId();
+			
+			// Get current function node position to place call node to the right
+			const currentNodes = getNodes();
+			const currentNode = currentNodes.find(n => n.id === id);
+			const baseX = currentNode?.position.x || 0;
+			const baseY = currentNode?.position.y || 0;
+			
+			console.log('Creating quick call for function:', data.name);
+			console.log('Function parameters:', normalisedParameters);
+			console.log('Positioning call node at:', { x: baseX + 650, y: baseY });
+			
+			const newCallNode: Node = {
+				id: callNodeId,
+				type: 'call',
+				position: { x: baseX + 650, y: baseY },
+				data: { 
+					funcName: data.name,
+					expectedArgs: normalisedParameters,
+					args: new Array(normalisedParameters.length).fill(''),
+					label: `call_${data.name}`,
+					type: 'call'
+				}
+			} as Node;
+			
+			console.log('Created call node with data:', newCallNode.data);
+			
+			// Add the node first
+			setNodes(nodes => [...nodes, newCallNode]);
+			
+			// Add the connection - this should trigger the connection handler
+			const newEdge = {
+				id: generateId(),
+				source: id,
+				sourceHandle: 'output',
+				target: callNodeId,
+				targetHandle: 'func',
+				type: 'default'
+			};
+			
+			console.log('Creating edge:', newEdge);
+			
+			// Use setTimeout to ensure the node is added before creating the edge
+			setTimeout(() => {
+				setEdges(edges => [...edges, newEdge]);
+			}, 10);
+			
+		}, [id, data.name, normalisedParameters, getNodes, setNodes, setEdges]);
+
 		const clickPosRef = React.useRef<{ x: number; y: number }>({
 			x: 0,
 			y: 0,
@@ -217,12 +277,18 @@ const FunctionNode = memo(
 			[id, setNodes]
 		);
 
+		// Get child nodes (function body)
+		const bodyNodes = React.useMemo(() => {
+			const nodes = getNodes();
+			return nodes.filter(n => n.parentId === id);
+		}, [getNodes, id]);
+
 		return (
 			<>
-				<div className="relative w-[600px] min-h-[500px] rounded-lg border bg-card shadow-sm transition-shadow hover:shadow-md">
+				<div className="relative w-[600px] min-h-[500px] rounded-lg border-2 border-purple-200 bg-card shadow-lg transition-shadow hover:shadow-xl">
 					{/* Function Header */}
 					<div className="p-3 border-b">
-						<div className="flex gap-2 items-center">
+						<div className="flex gap-2 items-center mb-2">
 							<div className="flex justify-center items-center w-6 h-6 rounded bg-purple-500/10">
 								<FunctionSquare className="w-4 h-4 text-purple-500" />
 							</div>
@@ -248,21 +314,46 @@ const FunctionNode = memo(
 								title="Toggle async"
 							/>
 						</div>
+						{/* Usage stats and quick actions */}
+						<div className="flex justify-between items-center">
+							<div className="text-xs text-muted-foreground">
+								Used in {usageCount} place{usageCount !== 1 ? 's' : ''}
+							</div>
+							<Button
+								size="sm"
+								variant="ghost"
+								onClick={createQuickCall}
+								className="px-2 h-6 text-xs"
+								title="Create a call to this function"
+							>
+								<PlayCircle className="mr-1 w-3 h-3" />
+								Call
+							</Button>
+						</div>
 					</div>
 
 					{/* Parameters Section */}
 					<div className="relative p-3 border-b">
 						<div className="flex justify-between items-center mb-2">
 							<div className="text-xs font-medium text-muted-foreground">
-								Input Parameters
+								Input Parameters {isEditingParams && <span className="text-blue-600">(editing...)</span>}
 							</div>
 							<Button
 								variant="ghost"
 								size="sm"
-								className="p-0 w-5 h-5"
-								onClick={() =>
-									setIsEditingParams(!isEditingParams)
-								}
+								className="p-0 w-5 h-5 edit-params-btn"
+								onClick={() => {
+									if (isEditingParams) {
+										// Save parameters when clicking checkmark
+										const paramArr = paramsInput
+											.split(",")
+											.map((p) => p.trim())
+											.filter(Boolean);
+										updateNodeData({ parameters: paramArr });
+									}
+									setIsEditingParams(!isEditingParams);
+								}}
+								title={isEditingParams ? "Save parameters" : "Edit parameters"}
 							>
 								<span className="text-xs">
 									{isEditingParams ? "✔" : "+"}
@@ -275,16 +366,37 @@ const FunctionNode = memo(
 								onChange={(e) => {
 									const val = e.target.value;
 									setParamsInput(val);
-									// split into array
-									const paramArr = val
-										.split(",")
-										.map((p) => p.trim())
-										.filter(Boolean);
-									updateNodeData({ parameters: paramArr });
 								}}
-								onBlur={() => setIsEditingParams(false)}
+								onKeyDown={(e) => {
+									if (e.key === "Enter") {
+										e.preventDefault();
+										// split into array and save
+										const paramArr = paramsInput
+											.split(",")
+											.map((p) => p.trim())
+											.filter(Boolean);
+										updateNodeData({ parameters: paramArr });
+										setIsEditingParams(false);
+									} else if (e.key === "Escape") {
+										setIsEditingParams(false);
+									}
+								}}
+								onBlur={(e) => {
+									// Only close if we're not clicking on the edit button
+									const relatedTarget = e.relatedTarget as HTMLElement;
+									if (!relatedTarget || !relatedTarget.closest('.edit-params-btn')) {
+										// split into array and save
+										const paramArr = paramsInput
+											.split(",")
+											.map((p) => p.trim())
+											.filter(Boolean);
+										updateNodeData({ parameters: paramArr });
+										setIsEditingParams(false);
+									}
+								}}
 								className="h-7 text-xs"
-								placeholder="id: string, count: number"
+								placeholder="e.g. id: string, count: number (press Enter to save)"
+								autoFocus
 							/>
 						) : (
 							<div
@@ -298,46 +410,93 @@ const FunctionNode = memo(
 												key={index}
 												className="relative group"
 											>
-												<Handle
-													type="target"
-													position={Position.Left}
-													id={`param-${index}`}
-													isConnectable={
-														isConnectable
-													}
-													className="!left-0 !bg-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"
-												/>
-												<div className="px-2 py-1 text-xs rounded-md border bg-muted">
-													{param.trim()}
+												<div className="relative px-3 py-2 text-xs rounded-md border transition-colors bg-muted hover:bg-purple-50">
+													<span className="font-medium">{param.trim()}</span>
+													<div className="absolute left-0 top-1/2 w-2 h-2 bg-purple-500 rounded-full opacity-60 transform -translate-x-1 -translate-y-1/2"></div>
 												</div>
 											</div>
 										)
 									)
 								) : (
 									<div className="text-xs italic text-muted-foreground">
-										No parameters
+										No parameters - click + to add
 									</div>
 								)}
 							</div>
 						)}
+						
+						{/* Parameter connection handles - only render when not editing */}
+						{!isEditingParams && normalisedParameters.map((param: string, index: number) => (
+							<Handle
+								key={`param-handle-${index}`}
+								type="target"
+								position={Position.Left}
+								id={`param-${index}`}
+								isConnectable={isConnectable}
+								className="!absolute !bg-purple-500 !w-4 !h-4 !rounded-full !border-2 !border-white !opacity-80 hover:!opacity-100 transition-opacity"
+								style={{ 
+									left: -8,
+									top: `${20 + index * 40}px`,
+								}}
+								title={`Connect a variable to parameter: ${param.trim()}`}
+							/>
+						))}
 					</div>
 
 					{/* Function Body Section */}
 					<div className="p-3 border-t">
 						<div className="flex justify-between items-center mb-2">
 							<div className="text-xs font-medium text-muted-foreground">
-								Function Body
+								Function Body ({bodyNodes.length} node{bodyNodes.length !== 1 ? 's' : ''})
 							</div>
-							{/* body header actions can be added here if needed */}
+							<div className="flex gap-1">
+								<Button
+									variant="ghost"
+									size="sm"
+									className="p-0 w-5 h-5"
+									onClick={() => setIsBodyExpanded(!isBodyExpanded)}
+									title={isBodyExpanded ? "Collapse body" : "Expand body"}
+								>
+									<span className="text-xs">
+										{isBodyExpanded ? "−" : "+"}
+									</span>
+								</Button>
+							</div>
 						</div>
+
+						{/* Function body preview */}
+						{bodyNodes.length > 0 && (
+							<div className="p-2 mb-3 bg-purple-50 rounded border border-purple-200">
+								<div className="mb-1 text-xs font-medium text-purple-800">Implementation Preview:</div>
+								<div className="font-mono text-xs text-purple-700">
+									{bodyNodes.length === 1 
+										? `return ${bodyNodes[0].data.name || 'result'};`
+										: `${bodyNodes.length} implementation nodes`
+									}
+								</div>
+							</div>
+						)}
 
 						{/* Function body interaction area with context menu */}
 						<ContextMenu>
 							<ContextMenuTrigger
-								className="h-[300px] w-full"
+								className={`w-full ${isBodyExpanded ? 'h-[400px]' : 'h-[200px]'} border-2 border-dashed border-purple-200 rounded flex items-center justify-center transition-all`}
 								onContextMenu={handleContextMenu}
 							>
-								<div className="w-full h-full" />
+								<div className="text-center text-muted-foreground">
+									{bodyNodes.length === 0 ? (
+										<div>
+											<Code className="mx-auto mb-2 w-8 h-8 opacity-50" />
+											<div className="text-sm">Right-click to add function logic</div>
+											<div className="text-xs">Variables, operations, return values</div>
+										</div>
+									) : (
+										<div>
+											<div className="text-sm">Function implementation area</div>
+											<div className="text-xs">Right-click to add more logic</div>
+										</div>
+									)}
+								</div>
 							</ContextMenuTrigger>
 							<ContextMenuContent className="w-48">
 								<ContextMenuItem
@@ -362,6 +521,13 @@ const FunctionNode = memo(
 									<Divide className="w-4 h-4" />
 									<span>Add Binary Operation</span>
 								</ContextMenuItem>
+								<ContextMenuItem
+									onSelect={() => addChildNode("call")}
+									className="flex gap-2 items-center"
+								>
+									<PlayCircle className="w-4 h-4" />
+									<span>Call Function</span>
+								</ContextMenuItem>
 							</ContextMenuContent>
 						</ContextMenu>
 					</div>
@@ -372,8 +538,9 @@ const FunctionNode = memo(
 						type="source"
 						position={Position.Right}
 						isConnectable={isConnectable}
-						className="!right-0 !top-1/2 !-translate-y-1/2 !h-3 !w-3 !rounded-full !bg-purple-500"
-						title="Drag to use this function's return value"
+						className="!h-4 !w-4 !rounded-full !bg-purple-500 !border-2 !border-white !opacity-90 hover:!opacity-100 transition-opacity"
+						style={{ right: -8, top: '50%', transform: 'translateY(-50%)' }}
+						title="Drag to call this function or use its return value"
 					/>
 				</div>
 			</>

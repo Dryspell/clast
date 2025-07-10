@@ -272,7 +272,7 @@ export class Parser {
       }
       // Interface declarations
       if (ts.isInterfaceDeclaration(stmt)) {
-        const id = generateId()
+        const id = idFromNode(stmt) // Use deterministic ID based on AST position
         const name = stmt.name.text
         const members = stmt.members
           .filter(ts.isPropertySignature)
@@ -292,7 +292,7 @@ export class Parser {
 
       // Function declarations
       else if (ts.isFunctionDeclaration(stmt) && stmt.name) {
-        const id = generateId()
+        const id = idFromNode(stmt) // Use deterministic ID based on AST position
         const name = stmt.name.text
         const parameters = stmt.parameters.map((p) => ({
           name: p.name.getText(),
@@ -342,22 +342,381 @@ export class Parser {
         const firstDecl = stmt.declarationList.declarations[0]
         if (!firstDecl || !ts.isIdentifier(firstDecl.name)) return
 
-        const id = generateId()
+        const id = idFromNode(stmt) // Use deterministic ID based on AST position
         const name = firstDecl.name.text
         const variableType = firstDecl.type ? firstDecl.type.getText() : undefined
         const initializer = firstDecl.initializer ? firstDecl.initializer.getText() : undefined
 
-        nodes.push({
-          id,
-          type: 'variable',
-          data: {
-            name,
-            variableType,
-            initializer,
-          },
-          pos: stmt.pos,
-          end: stmt.end,
-        } as AstNode)
+        // Improved handling: Detect call expressions and convert back to CallNode
+        // This handles any variable initialized with a function call, not just those with specific naming
+        if (firstDecl.initializer && ts.isCallExpression(firstDecl.initializer)) {
+          const callExpr = firstDecl.initializer;
+          const funcName = callExpr.expression.getText();
+          const args = callExpr.arguments.map(a => a.getText());
+          
+          // Heuristics to determine if this was a generated CallNode vs user variable:
+          // 1. Naming pattern suggests generated (call_, log_, etc.)
+          // 2. Variable name matches the function being called (suggesting auto-generated)
+          // 3. Simple function call with no complex expressions
+          const looksGenerated = 
+            name.startsWith('call_') || 
+            name.startsWith('log_') ||
+            name === `call_${funcName}` ||
+            /^(call|result|output)_[a-f0-9]+$/.test(name); // Generated ID pattern
+          
+          if (looksGenerated) {
+            nodes.push({
+              id,
+              type: 'call',
+              data: {
+                name: name, // Use the variable name as the node name
+                funcName,
+                args,
+                expectedArgs: args, // Use actual args as expected for now
+                label: name,
+                type: 'call'
+              },
+              pos: stmt.pos,
+              end: stmt.end,
+            } as AstNode);
+            
+            // Also walk the call expression for nested patterns
+            walkExpr(callExpr);
+          } else {
+            // Treat as regular variable but walk the call expression
+            nodes.push({
+              id,
+              type: 'variable',
+              data: {
+                name,
+                variableType,
+                initializer,
+                type: 'variable'
+              },
+              pos: stmt.pos,
+              end: stmt.end,
+            } as AstNode);
+            
+            // Still walk the expression to capture nested calls
+            walkExpr(callExpr);
+          }
+        }
+        // Binary operations: variables containing binary expressions
+        else if (firstDecl.initializer && ts.isBinaryExpression(firstDecl.initializer)) {
+          const binExpr = firstDecl.initializer;
+          const operator = binExpr.operatorToken.getText();
+          const lhs = binExpr.left.getText();
+          const rhs = binExpr.right.getText();
+          
+          // Detect generated binary operations
+          const looksGenerated = 
+            name.startsWith('bin_') ||
+            /^(bin|binary|op)_[a-f0-9_]+$/.test(name);
+          
+          if (looksGenerated) {
+            nodes.push({
+              id,
+              type: 'binaryOp',
+              data: {
+                name,
+                operator,
+                lhs,
+                rhs,
+                type: 'binaryOp'
+              },
+              pos: stmt.pos,
+              end: stmt.end,
+            } as AstNode);
+            
+            walkExpr(binExpr);
+          } else {
+            // Treat as regular variable but walk the expression
+            nodes.push({
+              id,
+              type: 'variable',
+              data: {
+                name,
+                variableType,
+                initializer,
+                type: 'variable'
+              },
+              pos: stmt.pos,
+              end: stmt.end,
+            } as AstNode);
+            
+            walkExpr(binExpr);
+          }
+        }
+        // Console logs: variables with IIFE patterns like `(() => { console.log(x); return x; })()`
+        else if (firstDecl.initializer && ts.isCallExpression(firstDecl.initializer) && 
+                 ts.isArrowFunction(firstDecl.initializer.expression)) {
+          const callExpr = firstDecl.initializer;
+          const arrowFunc = callExpr.expression;
+          
+          // Detect console.log IIFE pattern
+          const looksLikeConsoleLog = 
+            name.startsWith('log_') ||
+            /^log_[a-f0-9_]+$/.test(name) ||
+            (ts.isArrowFunction(arrowFunc) && ts.isBlock(arrowFunc.body) && 
+             arrowFunc.body.statements.some((stmt: ts.Statement) => 
+               ts.isExpressionStatement(stmt) && 
+               ts.isCallExpression(stmt.expression) &&
+               stmt.expression.expression.getText().includes('console.log')
+             ));
+          
+          if (looksLikeConsoleLog) {
+            // Extract the logged expression from the IIFE
+            let valueExpr = 'undefined';
+            if (ts.isArrowFunction(arrowFunc) && ts.isBlock(arrowFunc.body)) {
+              const consoleStmt = arrowFunc.body.statements.find((stmt: ts.Statement) => 
+                ts.isExpressionStatement(stmt) && 
+                ts.isCallExpression(stmt.expression) &&
+                stmt.expression.expression.getText().includes('console.log')
+              );
+              if (consoleStmt && ts.isExpressionStatement(consoleStmt) && 
+                  ts.isCallExpression(consoleStmt.expression)) {
+                const logArgs = consoleStmt.expression.arguments;
+                if (logArgs.length > 0) {
+                  valueExpr = logArgs[0].getText();
+                }
+              }
+            }
+            
+            nodes.push({
+              id,
+              type: 'console',
+              data: {
+                name,
+                label: name,
+                valueExpr,
+                type: 'console'
+              },
+              pos: stmt.pos,
+              end: stmt.end,
+            } as AstNode);
+            
+            walkExpr(callExpr);
+          } else {
+            // Regular variable
+            nodes.push({
+              id,
+              type: 'variable',
+              data: {
+                name,
+                variableType,
+                initializer,
+                type: 'variable'
+              },
+              pos: stmt.pos,
+              end: stmt.end,
+            } as AstNode);
+            
+            walkExpr(callExpr);
+          }
+        }
+        // Property access: variables with property access expressions
+        else if (firstDecl.initializer && ts.isPropertyAccessExpression(firstDecl.initializer)) {
+          const propExpr = firstDecl.initializer;
+          const objExpr = propExpr.expression.getText();
+          const property = propExpr.name.getText();
+          
+          // Detect generated property access
+          const looksGenerated = 
+            name.startsWith('prop_') ||
+            /^prop_[a-f0-9_]+$/.test(name);
+          
+          if (looksGenerated) {
+            nodes.push({
+              id,
+              type: 'propertyAccess',
+              data: {
+                name,
+                objExpr,
+                property,
+                type: 'propertyAccess'
+              },
+              pos: stmt.pos,
+              end: stmt.end,
+            } as AstNode);
+            
+            walkExpr(propExpr);
+          } else {
+            // Regular variable
+            nodes.push({
+              id,
+              type: 'variable',
+              data: {
+                name,
+                variableType,
+                initializer,
+                type: 'variable'
+              },
+              pos: stmt.pos,
+              end: stmt.end,
+            } as AstNode);
+            
+            walkExpr(propExpr);
+          }
+        }
+        // Conditional expressions: variables with ternary operators
+        else if (firstDecl.initializer && ts.isConditionalExpression(firstDecl.initializer)) {
+          const condExpr = firstDecl.initializer;
+          const testExpr = condExpr.condition.getText();
+          const whenTrue = condExpr.whenTrue.getText();
+          const whenFalse = condExpr.whenFalse.getText();
+          
+          // Detect generated conditional
+          const looksGenerated = 
+            name.startsWith('cond_') ||
+            /^cond_[a-f0-9_]+$/.test(name);
+          
+          if (looksGenerated) {
+            nodes.push({
+              id,
+              type: 'conditional',
+              data: {
+                name,
+                testExpr,
+                whenTrue,
+                whenFalse,
+                type: 'conditional'
+              },
+              pos: stmt.pos,
+              end: stmt.end,
+            } as AstNode);
+            
+            walkExpr(condExpr);
+          } else {
+            // Regular variable
+            nodes.push({
+              id,
+              type: 'variable',
+              data: {
+                name,
+                variableType,
+                initializer,
+                type: 'variable'
+              },
+              pos: stmt.pos,
+              end: stmt.end,
+            } as AstNode);
+            
+            walkExpr(condExpr);
+          }
+        }
+        // Literal values: variables with simple literal initializers
+        else if (firstDecl.initializer && (
+          ts.isStringLiteral(firstDecl.initializer) ||
+          ts.isNumericLiteral(firstDecl.initializer) ||
+          firstDecl.initializer.kind === ts.SyntaxKind.TrueKeyword ||
+          firstDecl.initializer.kind === ts.SyntaxKind.FalseKeyword
+        )) {
+          const literalExpr = firstDecl.initializer;
+          
+          // Detect generated literals
+          const looksGenerated = 
+            name.startsWith('lit_') ||
+            /^lit_[a-f0-9_]+$/.test(name);
+          
+          if (looksGenerated) {
+            const valueText = literalExpr.getText();
+            const literalType = ts.isStringLiteral(literalExpr)
+              ? 'string'
+              : ts.isNumericLiteral(literalExpr)
+              ? 'number'
+              : 'boolean';
+            
+            nodes.push({
+              id,
+              type: 'literal',
+              data: {
+                name,
+                value: valueText.replace(/^['\"]|['\"]$/g, ''),
+                literalType,
+                type: 'literal'
+              },
+              pos: stmt.pos,
+              end: stmt.end,
+            } as AstNode);
+          } else {
+            // Regular variable
+            nodes.push({
+              id,
+              type: 'variable',
+              data: {
+                name,
+                variableType,
+                initializer,
+                type: 'variable'
+              },
+              pos: stmt.pos,
+              end: stmt.end,
+            } as AstNode);
+          }
+        }
+        // Object literals: variables with object literal expressions
+        else if (firstDecl.initializer && ts.isObjectLiteralExpression(firstDecl.initializer)) {
+          const objExpr = firstDecl.initializer;
+          
+          // Detect generated object literals
+          const looksGenerated = 
+            name.startsWith('obj_') ||
+            /^obj_[a-f0-9_]+$/.test(name);
+          
+          if (looksGenerated) {
+            const properties = objExpr.properties
+              .filter(ts.isPropertyAssignment)
+              .map((p) => ({
+                key: (p.name as ts.Identifier).text,
+                value: p.initializer?.getText(),
+              }));
+            
+            nodes.push({
+              id,
+              type: 'object',
+              data: {
+                name,
+                properties,
+                type: 'object'
+              },
+              pos: stmt.pos,
+              end: stmt.end,
+            } as AstNode);
+            
+            walkExpr(objExpr);
+          } else {
+            // Regular variable
+            nodes.push({
+              id,
+              type: 'variable',
+              data: {
+                name,
+                variableType,
+                initializer,
+                type: 'variable'
+              },
+              pos: stmt.pos,
+              end: stmt.end,
+            } as AstNode);
+            
+            walkExpr(objExpr);
+          }
+        }
+        // Regular variable handling
+        else {
+          nodes.push({
+            id,
+            type: 'variable',
+            data: {
+              name,
+              variableType,
+              initializer,
+              type: 'variable'
+            },
+            pos: stmt.pos,
+            end: stmt.end,
+          } as AstNode)
+        }
       }
     })
 

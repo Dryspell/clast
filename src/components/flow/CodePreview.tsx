@@ -37,7 +37,7 @@ export function CodePreview({ code, onCodeChange, onDiagnostics }: CodePreviewPr
   }, [code])
 
   return (
-    <div className="h-full w-full rounded-lg border bg-card">
+    <div className="w-full h-full rounded-lg border bg-card">
       <Editor
         height="100%"
         defaultLanguage="typescript"

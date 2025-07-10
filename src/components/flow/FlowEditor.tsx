@@ -80,10 +80,23 @@ export function FlowEditor({ flowId, onSave, initialCode }: FlowEditorProps) {
 				const existing = nodes.find((e) => e.id === n.id);
 				return existing ? { ...n, position: existing.position } : n;
 			});
-			// Set flag to prevent the nodes effect from triggering code regeneration
-			updatingFromCodeRef.current = true;
-			setNodes(merged);
-			setEdges(rfEdges);
+			
+			// Only update if nodes have actually changed in meaningful ways
+			const nodesSame = merged.length === nodes.length && 
+				merged.every((n, i) => {
+					const existing = nodes[i];
+					return existing && 
+						n.id === existing.id && 
+						n.type === existing.type &&
+						JSON.stringify(n.data) === JSON.stringify(existing.data);
+				});
+			
+			if (!nodesSame) {
+				// Set flag to prevent the nodes effect from triggering code regeneration
+				updatingFromCodeRef.current = true;
+				setNodes(merged);
+				setEdges(rfEdges);
+			}
 		} catch {
 			// ignore parse errors – keep current graph
 		}
@@ -164,6 +177,8 @@ export function FlowEditor({ flowId, onSave, initialCode }: FlowEditorProps) {
 	// Keep code in sync if nodes changed elsewhere (e.g., via setNodes in connect handler)
 	// Use a ref to track if we're in the middle of a code->nodes update to prevent loops
 	const updatingFromCodeRef = React.useRef(false);
+	const lastGeneratedCodeRef = React.useRef<string>('');
+	
 	React.useEffect(() => {
 		// Skip if we're currently updating nodes from code to prevent circular updates
 		if (updatingFromCodeRef.current) {
@@ -177,8 +192,11 @@ export function FlowEditor({ flowId, onSave, initialCode }: FlowEditorProps) {
 			parentId: (n as any).parentId,
 			data: n.data as any,
 		}));
+		
 		generateCodeSync(astNodes).then((regenerated) => {
-			if (regenerated !== code) {
+			// Only update if the code has actually changed AND it's different from what we just generated
+			if (regenerated !== code && regenerated !== lastGeneratedCodeRef.current) {
+				lastGeneratedCodeRef.current = regenerated;
 				setCode(regenerated);
 			}
 		});
