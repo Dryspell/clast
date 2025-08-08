@@ -194,11 +194,6 @@ const FunctionNode = memo(
 			const currentNode = currentNodes.find(n => n.id === id);
 			const baseX = currentNode?.position.x || 0;
 			const baseY = currentNode?.position.y || 0;
-			
-			console.log('Creating quick call for function:', data.name);
-			console.log('Function parameters:', normalisedParameters);
-			console.log('Positioning call node at:', { x: baseX + 650, y: baseY });
-			
 			const newCallNode: Node = {
 				id: callNodeId,
 				type: 'call',
@@ -211,9 +206,6 @@ const FunctionNode = memo(
 					type: 'call'
 				}
 			} as Node;
-			
-			console.log('Created call node with data:', newCallNode.data);
-			
 			// Add the node first
 			setNodes(nodes => [...nodes, newCallNode]);
 			
@@ -226,9 +218,6 @@ const FunctionNode = memo(
 				targetHandle: 'func',
 				type: 'default'
 			};
-			
-			console.log('Creating edge:', newEdge);
-			
 			// Use setTimeout to ensure the node is added before creating the edge
 			setTimeout(() => {
 				setEdges(edges => [...edges, newEdge]);
@@ -264,10 +253,11 @@ const FunctionNode = memo(
 				if (type === "literal")
 					nodeData = { value: "0", literalType: "number", type };
 				if (type === "binaryOp") nodeData = { operator: "+", type };
-				const newNode: Node = {
+                const newNode: Node = {
 					id: idNew,
 					type,
-					parentId: id,
+                  // Use React Flow's parentNode for proper in-place rendering
+                  parentNode: id,
 					extent: "parent",
 					position: { x, y },
 					data: nodeData,
@@ -278,10 +268,10 @@ const FunctionNode = memo(
 		);
 
 		// Get child nodes (function body)
-		const bodyNodes = React.useMemo(() => {
-			const nodes = getNodes();
-			return nodes.filter(n => n.parentId === id);
-		}, [getNodes, id]);
+        const bodyNodes = React.useMemo(() => {
+          const nodes = getNodes();
+          return nodes.filter(n => (n as any).parentNode === id || (n as any).parentId === id);
+        }, [getNodes, id]);
 
 		return (
 			<>

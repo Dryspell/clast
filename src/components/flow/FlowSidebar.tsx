@@ -16,6 +16,7 @@ interface Props {
 
 export function FlowSidebar({ code, flowId, onCodeChange, onSave, onDiagnostics }: Props) {
   const updatePreview = useMutation(api.flows.updatePreview);
+  const saveTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleCodeChange = useCallback(
     (newCode: string) => {
@@ -23,7 +24,13 @@ export function FlowSidebar({ code, flowId, onCodeChange, onSave, onDiagnostics 
       onSave?.(newCode);
 
       if (flowId) {
-        updatePreview({ flowId: flowId as any, code: newCode }).catch(() => {});
+        // Debounce preview saves to reduce write frequency while typing
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current);
+        }
+        saveTimeoutRef.current = setTimeout(() => {
+          updatePreview({ flowId: flowId as any, code: newCode }).catch(() => {});
+        }, 400);
       }
     },
     [onCodeChange, onSave, flowId, updatePreview]

@@ -30,6 +30,18 @@ export const upsert = mutation({
 export const remove = mutation({
   args: { id: v.id("flow_nodes") },
   handler: async (ctx, { id }) => {
+    // First delete any edges that reference this node
+    const edgesToDelete = await ctx.db
+      .query("flow_edges")
+      .withIndex("by_flow", (q) => q) // scan by index then filter (no composite index available)
+      .collect();
+    for (const e of edgesToDelete) {
+      if (e.source === id || e.target === id) {
+        await ctx.db.delete(e._id);
+      }
+    }
+
+    // Then delete the node itself
     await ctx.db.delete(id);
   },
 });

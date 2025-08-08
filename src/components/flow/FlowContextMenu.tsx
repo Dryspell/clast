@@ -44,8 +44,7 @@ export function FlowContextMenu({ onCreate, wrapperRef, children }: Props) {
       const rect = wrapper.getBoundingClientRect();
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
-      
-      console.log(`Creating ${type} node at position:`, { x: centerX, y: centerY });
+
       onCreate(type, { x: centerX, y: centerY });
     },
     [onCreate, wrapperRef]
