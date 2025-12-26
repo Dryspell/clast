@@ -63,7 +63,7 @@ export function SiteHeader() {
                 <MenubarItem>New</MenubarItem>
                 <MenubarItem>Open</MenubarItem>
                 <MenubarSeparator />
-                <MenubarItem onSelect={() => { /* TODO: Connect save action via context */ }}>Save</MenubarItem>
+                <MenubarItem disabled>Save</MenubarItem>
               </MenubarContent>
             </MenubarMenu>
             <MenubarMenu>

@@ -118,6 +118,7 @@ export function FlowCanvas({
           onEdgesChange={handleEdgesChange}
           onConnect={onConnect}
           nodeTypes={nodeTypes as any}
+          proOptions={{ hideAttribution: true }}
           fitView
         >
           <Controls />

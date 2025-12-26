@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useRef } from "react";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -8,6 +8,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { useReactFlow, useViewport } from "@xyflow/react";
 import {
   Variable,
   FunctionSquare,
@@ -32,6 +33,9 @@ interface Props {
 }
 
 export function FlowContextMenu({ onCreate, wrapperRef, children }: Props) {
+  const { x, y, zoom } = useViewport();
+  const lastClickClient = useRef<{ x: number; y: number } | null>(null);
+
   const create = useCallback(
     (type: string) => {
       const wrapper = wrapperRef.current;
@@ -42,17 +46,26 @@ export function FlowContextMenu({ onCreate, wrapperRef, children }: Props) {
       }
 
       const rect = wrapper.getBoundingClientRect();
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
-
-      onCreate(type, { x: centerX, y: centerY });
+      // Prefer last right-click position if available; otherwise fall back to center
+      const clientX = lastClickClient.current?.x ?? rect.left + rect.width / 2;
+      const clientY = lastClickClient.current?.y ?? rect.top + rect.height / 2;
+      // Convert client coordinates to flow coordinates: (client - containerTopLeft - viewport) / zoom
+      const flowX = (clientX - rect.left - x) / zoom;
+      const flowY = (clientY - rect.top - y) / zoom;
+      onCreate(type, { x: flowX, y: flowY });
+      lastClickClient.current = null;
     },
-    [onCreate, wrapperRef]
+    [onCreate, wrapperRef, x, y, zoom]
   );
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger asChild>
+      <ContextMenuTrigger
+        asChild
+        onContextMenu={(e) => {
+          lastClickClient.current = { x: e.clientX, y: e.clientY };
+        }}
+      >
         {children}
       </ContextMenuTrigger>
 
